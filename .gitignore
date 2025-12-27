@@ -34,3 +34,5 @@ conf/*.backup
 # Sensitive files (add your actual secrets here)
 # .env
 # api/config.local.json
+api/analytics.json
+api/session.json
