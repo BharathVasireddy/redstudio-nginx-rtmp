@@ -4,6 +4,12 @@ set -euo pipefail
 STREAM_NAME="${1:-stream}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HLS_DIR="${ROOT_DIR}/temp/hls"
+LOG_DIR="${ROOT_DIR}/logs"
+LOG_FILE="${LOG_DIR}/ffmpeg-${STREAM_NAME}.log"
+
+mkdir -p "${LOG_DIR}"
+exec >> "${LOG_FILE}" 2>&1
+echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Starting FFmpeg ABR (lowcpu) for ${STREAM_NAME}"
 
 pkill -f "ffmpeg .*live/${STREAM_NAME}" 2>/dev/null || true
 
@@ -11,7 +17,7 @@ mkdir -p "${HLS_DIR}/0" "${HLS_DIR}/1"
 
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_NAME}"
 
-ffmpeg -hide_banner -y \
+ffmpeg -hide_banner -loglevel warning -stats -y \
   -i "${INPUT_URL}" \
   -filter_complex \
     "[0:v]split=2[v1080][v720]; \
