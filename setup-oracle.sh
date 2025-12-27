@@ -1,0 +1,160 @@
+#!/bin/bash
+# setup-oracle.sh - One-time setup script for Oracle Cloud instance
+# Run this on a fresh Ubuntu instance on Oracle Cloud
+# Usage: sudo ./setup-oracle.sh
+
+set -e
+
+echo "🚀 Red Studio - Oracle Cloud Setup"
+echo "===================================="
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Please run as root: sudo ./setup-oracle.sh"
+    exit 1
+fi
+
+# System update
+echo ""
+echo "📦 Updating system packages..."
+apt update && apt upgrade -y
+
+# Install build dependencies
+echo ""
+echo "📦 Installing build dependencies..."
+apt install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev \
+    libssl-dev libgd-dev libgeoip-dev git curl unzip
+
+# Install Node.js 20 LTS
+echo ""
+echo "📦 Installing Node.js 20 LTS..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+
+# Create web directory
+echo ""
+echo "📁 Creating web directory..."
+mkdir -p /var/www
+cd /var/www
+
+# Clone repository (or skip if exists)
+if [ ! -d "/var/www/nginx-rtmp-module" ]; then
+    echo ""
+    echo "📥 Cloning repository..."
+    git clone https://github.com/BharathVasireddy/redstudio-nginx-rtmp.git nginx-rtmp-module
+else
+    echo ""
+    echo "📥 Repository exists, pulling latest..."
+    cd nginx-rtmp-module
+    git pull origin main
+    cd /var/www
+fi
+
+# Download and build NGINX with RTMP module
+echo ""
+echo "🔨 Building NGINX with RTMP module..."
+cd /tmp
+
+# Download NGINX
+NGINX_VERSION="1.24.0"
+wget -q http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz
+tar -xzf nginx-${NGINX_VERSION}.tar.gz
+
+# Use vendored RTMP module (no external dependency)
+RTMP_MODULE_DIR="/var/www/nginx-rtmp-module/vendor/nginx-rtmp-module"
+if [ ! -d "${RTMP_MODULE_DIR}" ]; then
+    echo "❌ Vendored nginx-rtmp-module not found at ${RTMP_MODULE_DIR}"
+    exit 1
+fi
+
+# Compile NGINX
+cd nginx-${NGINX_VERSION}
+./configure \
+    --prefix=/usr/local/nginx \
+    --with-http_ssl_module \
+    --with-http_secure_link_module \
+    --with-http_realip_module \
+    --add-module="${RTMP_MODULE_DIR}"
+
+make -j$(nproc)
+make install
+
+# Create symlink
+ln -sf /usr/local/nginx/sbin/nginx /usr/bin/nginx
+
+# Create required directories
+echo ""
+echo "📁 Creating directories..."
+mkdir -p /var/www/nginx-rtmp-module/temp/hls
+mkdir -p /var/www/nginx-rtmp-module/logs
+chown -R www-data:www-data /var/www/nginx-rtmp-module
+
+# Copy nginx config
+echo ""
+echo "⚙️ Configuring NGINX..."
+if [ -e /usr/local/nginx/conf/nginx.conf ]; then
+    mv /usr/local/nginx/conf/nginx.conf /usr/local/nginx/conf/nginx.conf.backup.$(date +%Y%m%d%H%M%S)
+fi
+cp /var/www/nginx-rtmp-module/conf/nginx.conf /usr/local/nginx/conf/nginx.conf
+
+# Install systemd service
+echo ""
+echo "⚙️ Installing systemd service..."
+cp /var/www/nginx-rtmp-module/nginx-rtmp.service /etc/systemd/system/nginx-rtmp.service
+systemctl daemon-reload
+systemctl enable nginx-rtmp
+
+# Configure firewall
+echo ""
+echo "🔥 Configuring firewall..."
+# Oracle Cloud uses iptables
+iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+iptables -I INPUT -p tcp --dport 8080 -j ACCEPT
+iptables -I INPUT -p tcp --dport 1935 -j ACCEPT
+
+# Save iptables rules
+apt install -y iptables-persistent
+netfilter-persistent save
+
+# Setup Node.js API
+echo ""
+echo "📦 Setting up Node.js API..."
+cd /var/www/nginx-rtmp-module/api
+npm install --production
+
+# Install API systemd service
+echo ""
+echo "⚙️ Installing API systemd service..."
+cp /var/www/nginx-rtmp-module/nginx-rtmp-api.service /etc/systemd/system/nginx-rtmp-api.service
+systemctl daemon-reload
+systemctl enable nginx-rtmp-api
+
+# Start services
+echo ""
+echo "🚀 Starting services..."
+systemctl start nginx-rtmp
+systemctl start nginx-rtmp-api
+
+# Cleanup
+echo ""
+echo "🧹 Cleaning up..."
+rm -rf /tmp/nginx-${NGINX_VERSION}*
+
+# Final status
+echo ""
+echo "===================================="
+echo "✅ Setup Complete!"
+echo "===================================="
+echo ""
+echo "Services Status:"
+echo "  NGINX: $(systemctl is-active nginx-rtmp)"
+echo "  API:   $(systemctl is-active nginx-rtmp-api)"
+echo ""
+echo "Access your server at:"
+echo "  http://$(curl -s ifconfig.me):8080"
+echo ""
+echo "⚠️  Don't forget to:"
+echo "  1. Update Oracle Cloud Security List to allow ports 80, 443, 1935, 8080"
+echo "  2. Add GitHub secrets for automated deployment"
+echo ""

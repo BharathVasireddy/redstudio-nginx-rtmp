@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Red Studio</title>
+    <meta name="description" content="Manage your streaming configuration">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Admin-specific styles */
+        .platform-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .platform-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: hsl(var(--muted) / 0.3);
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .platform-item:hover {
+            background: hsl(var(--muted) / 0.5);
+        }
+
+        .platform-item.enabled {
+            border-color: hsl(var(--success));
+            background: hsl(var(--success) / 0.05);
+        }
+
+        .platform-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .platform-icon.youtube {
+            background: #ff0000;
+        }
+
+        .platform-icon.twitch {
+            background: #9146ff;
+        }
+
+        .platform-icon.facebook {
+            background: #1877f2;
+        }
+
+        .platform-icon.custom {
+            background: hsl(var(--muted));
+            color: hsl(var(--muted-foreground));
+            border: 1px solid hsl(var(--border));
+        }
+
+        .platform-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .platform-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: hsl(var(--foreground));
+        }
+
+        .platform-url {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .platform-key {
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .platform-key input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--input));
+            border-radius: var(--radius);
+            color: hsl(var(--foreground));
+        }
+
+        .platform-key input:focus {
+            outline: none;
+            border-color: hsl(var(--ring));
+            box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+        }
+
+        /* User list */
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: hsl(var(--muted) / 0.3);
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+        }
+
+        .user-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: hsl(var(--foreground));
+        }
+
+        .user-key {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        /* Add button dashed */
+        .btn-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.875rem;
+            background: transparent;
+            border: 2px dashed hsl(var(--border));
+            border-radius: var(--radius);
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add:hover {
+            border-color: hsl(var(--primary));
+            color: hsl(var(--primary));
+            background: hsl(var(--primary) / 0.05);
+        }
+
+        .btn-add svg {
+            width: 1.125rem;
+            height: 1.125rem;
+        }
+
+        /* Stats grid in settings */
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .settings-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+        }
+
+        .settings-value.success {
+            color: hsl(var(--success));
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: hsl(var(--border));
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <a href="/" class="logo">
+                    <div class="logo-icon">R</div>
+                    <span>Red Studio</span>
+                </a>
+                <nav class="nav">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/admin/" class="nav-link active">Dashboard</a>
+                    <a href="/admin/player.html" class="nav-link">Player</a>
+                    <a href="/admin/tokens.html" class="nav-link">Tokens</a>
+                    <a href="/stat" class="nav-link" target="_blank">Stats</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="container">
+                <div class="page-header">
+                    <div class="page-header-content">
+                        <h1 class="page-title">Admin Dashboard</h1>
+                        <p class="page-description">Manage streaming platforms, HLS settings, and authentication</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="saveBtn" onclick="applyChanges()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                <polyline points="17 21 17 13 7 13 7 21" />
+                                <polyline points="7 3 7 8 15 8" />
+                            </svg>
+                            Save & Apply
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2">
+                    <!-- Platform Destinations -->
+                    <div class="card col-span-full">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 7l-7 5 7 5V7z" />
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                                </svg>
+                                Platform Destinations
+                            </h3>
+                            <span class="badge badge-outline" id="platformCount">0 Active</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="platform-list" id="platformList">
+                                <!-- Platforms rendered here -->
+                            </div>
+                            <button class="btn-add mt-3" onclick="showAddPlatformModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Add Custom Platform
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- HLS Settings -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path
+                                        d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                                </svg>
+                                HLS Settings
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Fragment Duration (s)</label>
+                                    <input type="number" class="form-input" id="hlsFragment" min="1" max="10" value="2">
+                                    <p class="form-hint">Lower = less latency</p>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Playlist Length (s)</label>
+                                    <input type="number" class="form-input" id="hlsPlaylist" min="5" max="60"
+                                        value="10">
+                                    <p class="form-hint">DVR buffer length</p>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Encoding Profile</label>
+                                    <select class="form-input" id="hlsProfile">
+                                        <option value="lowcpu">Low CPU (1080p + 720p)</option>
+                                        <option value="high">High Quality (1080p + 720p + 480p)</option>
+                                    </select>
+                                    <p class="form-hint">Low CPU recommended on Oracle Free Tier</p>
+                                </div>
+                            </div>
+                            <div class="divider"></div>
+                            <label class="form-checkbox">
+                                <input type="checkbox" id="hlsCleanup" checked>
+                                <span>Auto-cleanup old segments</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- IP Restrictions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                                IP Restrictions
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="flex flex-col gap-3">
+                                <label class="form-checkbox">
+                                    <input type="checkbox" id="allowLocalhost" checked>
+                                    <span>Allow localhost (127.0.0.1)</span>
+                                </label>
+                                <label class="form-checkbox">
+                                    <input type="checkbox" id="allowLan" checked>
+                                    <span>Allow LAN (192.168.x.x)</span>
+                                </label>
+                            </div>
+                            <div class="form-group mt-4">
+                                <label class="form-label">Custom IPs (one per line)</label>
+                                <textarea class="form-input" id="customIps" rows="3"
+                                    placeholder="e.g. 10.0.0.5&#10;203.0.113.0/24"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stream Key Management -->
+                    <div class="card col-span-full">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path
+                                        d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+                                </svg>
+                                Stream Key Management
+                            </h3>
+                            <span class="badge badge-outline" id="userCount">0 Users</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="user-list" id="userList">
+                                <!-- Users rendered here -->
+                            </div>
+                            <button class="btn-add mt-3" onclick="showAddUserModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Add New User
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-text">© <span id="year"></span> Red Studio. Built with NGINX-RTMP.</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+            </svg>
+        </div>
+        <span class="toast-message" id="toastMessage">Settings saved</span>
+    </div>
+
+    <!-- Add Platform Modal -->
+    <div class="modal-overlay" id="addPlatformModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Custom Platform</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-4">
+                    <label class="form-label">Platform Name</label>
+                    <input type="text" class="form-input" id="newPlatformName" placeholder="e.g. Kick, Rumble">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">RTMP URL</label>
+                    <input type="text" class="form-input" id="newPlatformUrl"
+                        placeholder="e.g. rtmp://live.example.com/app/">
+                    <p class="form-hint">Include trailing slash. Stream key will be appended.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideAddPlatformModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addCustomPlatform()">Add Platform</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal-overlay" id="addUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New User</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="newUsername" placeholder="e.g. streamer2">
+                    <p class="form-hint">A random stream key will be generated automatically.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideAddUserModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="addUser()">Add User</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const API_BASE = 'http://localhost:3000/api';
+        let config = null;
+
+        // Load configuration
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/config`);
+                if (!response.ok) throw new Error('Failed to load config');
+                config = await response.json();
+                renderPlatforms();
+                renderUsers();
+                renderHlsSettings();
+                renderIpRestrictions();
+            } catch (err) {
+                showToast('Failed to connect to API server. Is it running?', 'error');
+                console.error(err);
+            }
+        }
+
+        // Render platforms
+        function renderPlatforms() {
+            const container = document.getElementById('platformList');
+            container.innerHTML = '';
+            let activeCount = 0;
+
+            config.platforms.forEach((platform, index) => {
+                if (platform.enabled) activeCount++;
+                container.appendChild(createPlatformItem(platform, index, false));
+            });
+
+            if (config.customPlatforms) {
+                config.customPlatforms.forEach((platform, index) => {
+                    if (platform.enabled) activeCount++;
+                    container.appendChild(createPlatformItem(platform, index, true));
+                });
+            }
+
+            document.getElementById('platformCount').textContent = `${activeCount} Active`;
+        }
+
+        function createPlatformItem(platform, index, isCustom) {
+            const div = document.createElement('div');
+            div.className = `platform-item ${platform.enabled ? 'enabled' : ''}`;
+            div.innerHTML = `
+                <div class="platform-icon ${platform.id}">${platform.name.charAt(0)}</div>
+                <div class="platform-info">
+                    <div class="platform-name">${platform.name}</div>
+                    <div class="platform-url">${platform.url}</div>
+                </div>
+                <div class="platform-key">
+                    <input type="password" placeholder="Stream Key" value="${platform.key || ''}" 
+                           onchange="updatePlatformKey(${index}, this.value, ${isCustom})"
+                           onfocus="this.type='text'" onblur="this.type='password'">
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" ${platform.enabled ? 'checked' : ''} 
+                           onchange="togglePlatform(${index}, this.checked, ${isCustom})">
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+                ${isCustom ? `<button class="btn btn-ghost btn-icon" onclick="deleteCustomPlatform(${index})" title="Delete">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>` : ''}
+            `;
+            return div;
+        }
+
+        // Render users
+        function renderUsers() {
+            const container = document.getElementById('userList');
+            container.innerHTML = '';
+
+            config.auth.users.forEach((user, index) => {
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <div class="user-avatar">${user.username.charAt(0)}</div>
+                    <div class="user-info">
+                        <div class="user-name">${user.username}</div>
+                        <div class="user-key">stream?user=${user.username}&pass=${user.key}</div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn btn-ghost btn-icon" title="Copy" onclick="copyStreamKey('${user.username}', '${user.key}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-ghost btn-icon" title="Rotate Key" onclick="rotateKey('${user.username}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                        </button>
+                        ${config.auth.users.length > 1 ? `<button class="btn btn-ghost btn-icon" title="Delete" onclick="deleteUser('${user.username}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('userCount').textContent = `${config.auth.users.length} User${config.auth.users.length !== 1 ? 's' : ''}`;
+        }
+
+        function renderHlsSettings() {
+            document.getElementById('hlsFragment').value = config.hls.fragmentDuration;
+            document.getElementById('hlsPlaylist').value = config.hls.playlistLength;
+            document.getElementById('hlsCleanup').checked = config.hls.cleanup;
+            document.getElementById('hlsProfile').value = config.hls.profile || 'lowcpu';
+        }
+
+        function renderIpRestrictions() {
+            document.getElementById('allowLocalhost').checked = config.ipRestrictions.allowLocalhost;
+            document.getElementById('allowLan').checked = config.ipRestrictions.allowLan;
+            document.getElementById('customIps').value = (config.ipRestrictions.customIps || []).join('\n');
+        }
+
+        // Platform actions
+        function updatePlatformKey(index, key, isCustom) {
+            if (isCustom) {
+                config.customPlatforms[index].key = key;
+            } else {
+                config.platforms[index].key = key;
+            }
+        }
+
+        function togglePlatform(index, enabled, isCustom) {
+            if (isCustom) {
+                config.customPlatforms[index].enabled = enabled;
+            } else {
+                config.platforms[index].enabled = enabled;
+            }
+            renderPlatforms();
+        }
+
+        function deleteCustomPlatform(index) {
+            if (confirm('Delete this platform?')) {
+                config.customPlatforms.splice(index, 1);
+                renderPlatforms();
+            }
+        }
+
+        // User actions
+        async function rotateKey(username) {
+            if (!confirm(`Generate a new stream key for "${username}"? The old key will stop working immediately.`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/key/rotate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const user = config.auth.users.find(u => u.username === username);
+                    if (user) user.key = data.newKey;
+                    renderUsers();
+                    showToast('Stream key rotated successfully');
+                } else {
+                    showToast(data.error || 'Failed to rotate key', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to rotate key', 'error');
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Delete user "${username}"?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/user/${username}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    config.auth.users = config.auth.users.filter(u => u.username !== username);
+                    renderUsers();
+                    showToast('User deleted');
+                } else {
+                    showToast(data.error || 'Failed to delete user', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to delete user', 'error');
+            }
+        }
+
+        function copyStreamKey(username, key) {
+            const streamKey = `stream?user=${username}&pass=${key}`;
+            navigator.clipboard.writeText(streamKey);
+            showToast('Stream key copied to clipboard');
+        }
+
+        // Modals
+        function showAddPlatformModal() {
+            document.getElementById('addPlatformModal').classList.add('show');
+            document.getElementById('newPlatformName').value = '';
+            document.getElementById('newPlatformUrl').value = '';
+        }
+
+        function hideAddPlatformModal() {
+            document.getElementById('addPlatformModal').classList.remove('show');
+        }
+
+        function showAddUserModal() {
+            document.getElementById('addUserModal').classList.add('show');
+            document.getElementById('newUsername').value = '';
+        }
+
+        function hideAddUserModal() {
+            document.getElementById('addUserModal').classList.remove('show');
+        }
+
+        async function addCustomPlatform() {
+            const name = document.getElementById('newPlatformName').value.trim();
+            const url = document.getElementById('newPlatformUrl').value.trim();
+
+            if (!name || !url) {
+                showToast('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (!config.customPlatforms) config.customPlatforms = [];
+            config.customPlatforms.push({
+                id: name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                name,
+                url,
+                key: '',
+                enabled: false
+            });
+
+            renderPlatforms();
+            hideAddPlatformModal();
+            showToast('Platform added. Add stream key and enable it.');
+        }
+
+        async function addUser() {
+            const username = document.getElementById('newUsername').value.trim();
+
+            if (!username) {
+                showToast('Please enter a username', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    config.auth.users.push(data.user);
+                    renderUsers();
+                    hideAddUserModal();
+                    showToast('User added with new stream key');
+                } else {
+                    showToast(data.error || 'Failed to add user', 'error');
+                }
+            } catch (err) {
+                showToast('Failed to add user', 'error');
+            }
+        }
+
+        // Apply changes
+        async function applyChanges() {
+            const saveBtn = document.getElementById('saveBtn');
+            const originalContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<div class="spinner"></div> Applying...';
+            saveBtn.disabled = true;
+
+            try {
+                config.hls.fragmentDuration = parseInt(document.getElementById('hlsFragment').value) || 2;
+                config.hls.playlistLength = parseInt(document.getElementById('hlsPlaylist').value) || 10;
+                config.hls.cleanup = document.getElementById('hlsCleanup').checked;
+                config.hls.profile = document.getElementById('hlsProfile').value || 'lowcpu';
+
+                config.ipRestrictions.allowLocalhost = document.getElementById('allowLocalhost').checked;
+                config.ipRestrictions.allowLan = document.getElementById('allowLan').checked;
+                config.ipRestrictions.customIps = document.getElementById('customIps').value
+                    .split('\n').map(ip => ip.trim()).filter(ip => ip);
+
+                await fetch(`${API_BASE}/platforms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platforms: config.platforms, customPlatforms: config.customPlatforms })
+                });
+
+                await fetch(`${API_BASE}/hls`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config.hls)
+                });
+
+                await fetch(`${API_BASE}/ip-restrictions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config.ipRestrictions)
+                });
+
+                const applyResponse = await fetch(`${API_BASE}/apply`, { method: 'POST' });
+                const applyData = await applyResponse.json();
+
+                if (applyData.success) {
+                    showToast('Configuration applied. NGINX reloaded!');
+                } else {
+                    throw new Error(applyData.error || 'Failed to apply configuration');
+                }
+            } catch (err) {
+                showToast(err.message || 'Failed to apply changes', 'error');
+                console.error(err);
+            } finally {
+                saveBtn.innerHTML = originalContent;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = message;
+            toast.className = `toast ${type}`;
+
+            const icon = toast.querySelector('.toast-icon svg');
+            if (type === 'success') {
+                icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+            } else {
+                icon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+            }
+
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', e => {
+                if (e.target === overlay) overlay.classList.remove('show');
+            });
+        });
+
+        loadConfig();
+    </script>
+</body>
+
+</html>

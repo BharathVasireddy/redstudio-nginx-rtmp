@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Red Studio</title>
+    <meta name="description" content="Access Red Studio streaming dashboard">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--background)) 100%);
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-logo-icon {
+            width: 3rem;
+            height: 3rem;
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 14px hsl(var(--primary) / 0.4);
+        }
+
+        .login-logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: hsl(var(--foreground));
+        }
+
+        .login-card {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .login-title {
+            font-size: 1.375rem;
+            font-weight: 700;
+            text-align: center;
+            color: hsl(var(--foreground));
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            font-size: 0.9375rem;
+            text-align: center;
+            color: hsl(var(--muted-foreground));
+            margin-bottom: 1.5rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .login-error {
+            display: none;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.875rem 1rem;
+            background: hsl(var(--destructive) / 0.1);
+            border: 1px solid hsl(var(--destructive) / 0.2);
+            border-radius: var(--radius);
+            color: hsl(var(--destructive));
+            font-size: 0.875rem;
+        }
+
+        .login-error.visible {
+            display: flex;
+        }
+
+        .login-error svg {
+            width: 1.125rem;
+            height: 1.125rem;
+            flex-shrink: 0;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field input {
+            padding-right: 3rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: hsl(var(--muted-foreground));
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: hsl(var(--foreground));
+        }
+
+        .password-toggle svg {
+            width: 1.125rem;
+            height: 1.125rem;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.8125rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Decorative elements */
+        .decoration {
+            position: fixed;
+            border-radius: 50%;
+            background: hsl(var(--primary) / 0.1);
+            pointer-events: none;
+        }
+
+        .decoration-1 {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            right: -100px;
+        }
+
+        .decoration-2 {
+            width: 200px;
+            height: 200px;
+            bottom: -50px;
+            left: -50px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Decorative circles -->
+    <div class="decoration decoration-1"></div>
+    <div class="decoration decoration-2"></div>
+
+    <div class="login-wrapper">
+        <div class="login-header">
+            <div class="login-logo">
+                <div class="login-logo-icon">R</div>
+                <span class="login-logo-text">Red Studio</span>
+            </div>
+        </div>
+
+        <div class="login-card">
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Enter your password to access the dashboard</p>
+
+            <div class="login-error" id="error">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>Invalid password. Please try again.</span>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="password-field">
+                        <input type="password" class="form-input" id="password" placeholder="Enter access password"
+                            autofocus required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()" title="Show password">
+                            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg login-btn">
+                    Access Dashboard
+                </button>
+            </form>
+        </div>
+
+        <p class="login-footer">© <span id="year"></span> Red Studio. All rights reserved.</p>
+    </div>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // Check if already logged in
+        if (localStorage.getItem('rs_auth') === 'authenticated') {
+            window.location.href = '/';
+        }
+
+        // Toggle password visibility
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+            } else {
+                input.type = 'password';
+                eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+            }
+        }
+
+        // Handle form submit
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+
+            // Check password
+            if (password === 'redstudio2025') {
+                localStorage.setItem('rs_auth', 'authenticated');
+                localStorage.setItem('rs_auth_time', Date.now().toString());
+                window.location.href = '/';
+            } else {
+                document.getElementById('error').classList.add('visible');
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+
+                // Shake animation
+                const card = document.querySelector('.login-card');
+                card.style.animation = 'shake 0.5s';
+                setTimeout(() => card.style.animation = '', 500);
+            }
+        });
+
+        // Hide error on input
+        document.getElementById('password').addEventListener('input', function () {
+            document.getElementById('error').classList.remove('visible');
+        });
+    </script>
+
+    <style>
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10%,
+            30%,
+            50%,
+            70%,
+            90% {
+                transform: translateX(-5px);
+            }
+
+            20%,
+            40%,
+            60%,
+            80% {
+                transform: translateX(5px);
+            }
+        }
+    </style>
+</body>
+
+</html>

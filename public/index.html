@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Red Studio | Live Streaming</title>
+    <meta name="description" content="Professional live streaming platform by Red Studio. Watch live 24/7.">
+    <meta name="theme-color" content="#0a0a0a">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Red Studio Live">
+    <meta property="og:description" content="Watch live streaming 24/7">
+    <meta property="og:type" content="video.other">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Video.js - Best for Live Streaming -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-glow: rgba(220, 38, 38, 0.4);
+            --bg-dark: #0a0a0a;
+            --bg-card: #111111;
+            --bg-overlay: rgba(0, 0, 0, 0.6);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --success: #22c55e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* Hero Section - Compact */
+        .hero {
+            text-align: center;
+            padding: 2rem 1rem 1.5rem;
+            background: var(--bg-dark);
+        }
+
+        .hero-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .hero-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 0 30px var(--primary-glow);
+        }
+
+        .hero-brand {
+            text-align: left;
+        }
+
+        .hero-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Player Section */
+        .player-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem;
+        }
+
+        .player-container {
+            position: relative;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Video.js Customization */
+        .video-js {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+        }
+
+        /* Hide big play button for live streams - use custom overlay instead */
+        .video-js .vjs-big-play-button {
+            display: none !important;
+        }
+
+        .video-js .vjs-control-bar {
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            height: 50px;
+            padding: 0 10px;
+        }
+
+        .video-js .vjs-play-progress,
+        .video-js .vjs-volume-level {
+            background: var(--primary);
+        }
+
+        .video-js .vjs-slider:focus {
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        /* Live Badge in Player */
+        .vjs-live-control {
+            display: flex !important;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px !important;
+            background: var(--primary) !important;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 10px;
+        }
+
+        .vjs-live-control::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Hide time display and progress bar for live streams */
+        .video-js .vjs-progress-control,
+        .video-js .vjs-time-control,
+        .video-js .vjs-remaining-time {
+            display: none !important;
+        }
+
+        /* Stream Info Bar */
+        .stream-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-subtle);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .stream-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .live-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .offline-badge {
+            background: #52525b;
+        }
+
+        .offline-badge::before {
+            animation: none;
+        }
+
+        .stream-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .action-btn.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .action-btn.primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Offline Overlay */
+        .offline-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .offline-overlay.hidden {
+            display: none;
+        }
+
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .offline-icon svg {
+            width: 36px;
+            height: 36px;
+            color: var(--text-muted);
+        }
+
+        .offline-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .offline-hint {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(255, 255, 255, 0.95);
+            color: #111;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .hero {
+                padding: 1.5rem 1rem;
+            }
+
+            .hero-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+
+            .hero-title {
+                font-size: 1.25rem;
+            }
+
+            .stream-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .stream-actions {
+                width: 100%;
+            }
+
+            .action-btn {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-logo">
+            <div class="hero-icon">R</div>
+            <div class="hero-brand">
+                <div class="hero-title">Red Studio</div>
+                <div class="hero-subtitle">Live Streaming Platform</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Player Section -->
+    <section class="player-section">
+        <div class="player-container">
+            <!-- Video.js Player -->
+            <video id="player" class="video-js vjs-big-play-centered vjs-live" controls playsinline preload="auto"
+                poster="/images/offline.png">
+            </video>
+
+            <!-- Offline Overlay -->
+            <div class="offline-overlay" id="offlineOverlay">
+                <div class="offline-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7" />
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                    </svg>
+                </div>
+                <div class="offline-text">Stream Offline</div>
+                <div class="offline-hint">Waiting for broadcast to start...</div>
+            </div>
+
+            <!-- Stream Info Bar -->
+            <div class="stream-info">
+                <div class="stream-meta">
+                    <span id="statusBadge" class="live-badge offline-badge">Offline</span>
+                </div>
+                <div class="stream-actions">
+                    <button class="action-btn primary" id="goLiveBtn" onclick="goLive()" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Go Live
+                    </button>
+                    <button class="action-btn" onclick="toggleFullscreen()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 3 21 3 21 9" />
+                            <polyline points="9 21 3 21 3 15" />
+                            <line x1="21" y1="3" x2="14" y2="10" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                        </svg>
+                        Fullscreen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© <span id="year"></span> Red Studio.</p>
+    </footer>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const statusBadge = document.getElementById('statusBadge');
+        const offlineOverlay = document.getElementById('offlineOverlay');
+        const goLiveBtn = document.getElementById('goLiveBtn');
+
+        let isLive = false;
+        let player = null;
+        let isReconnecting = false;
+        let lastInitAt = 0;
+        const REINIT_COOLDOWN_MS = 3000;
+
+        // Initialize Video.js player
+        function initPlayer(url) {
+            if (player) {
+                player.src({ src: url, type: 'application/x-mpegURL' });
+                player.play().catch(() => { });
+                return;
+            }
+
+            player = videojs('player', {
+                liveui: true,
+                liveTracker: {
+                    trackingThreshold: 0,
+                    liveTolerance: 15
+                },
+                html5: {
+                    vhs: {
+                        overrideNative: true
+                    },
+                    nativeAudioTracks: false,
+                    nativeVideoTracks: false
+                },
+                controls: true,
+                autoplay: 'muted',
+                preload: 'auto',
+                responsive: true
+            });
+
+            player.src({ src: url, type: 'application/x-mpegURL' });
+
+            player.on('playing', () => {
+                offlineOverlay.classList.add('hidden');
+                setReconnectState(false);
+            });
+
+            player.on('error', () => {
+                console.log('Player error, will retry');
+                scheduleReconnect();
+            });
+
+            player.on('stalled', () => {
+                scheduleReconnect();
+            });
+
+            player.on('waiting', () => {
+                setReconnectState(true);
+            });
+
+            player.on('loadedmetadata', () => {
+                setReconnectState(false);
+            });
+        }
+
+        function setReconnectState(active) {
+            isReconnecting = active;
+            if (active) {
+                offlineOverlay.classList.remove('hidden');
+                document.querySelector('.offline-text').textContent = 'Reconnecting';
+                document.querySelector('.offline-hint').textContent = 'Restoring live stream...';
+            } else {
+                document.querySelector('.offline-text').textContent = 'Stream Offline';
+                document.querySelector('.offline-hint').textContent = 'Waiting for broadcast to start...';
+            }
+        }
+
+        async function tryInitStream() {
+            const now = Date.now();
+            if (now - lastInitAt < REINIT_COOLDOWN_MS) {
+                return;
+            }
+
+            lastInitAt = now;
+            const url = await getStreamUrl();
+            if (url) {
+                initPlayer(url);
+            }
+        }
+
+        function scheduleReconnect() {
+            if (!isLive) return;
+            setReconnectState(true);
+            tryInitStream();
+        }
+
+        // Get HLS stream URL with token
+        async function getStreamUrl() {
+            try {
+                const res = await fetch('/api/token/hls?stream=master');
+                const data = await res.json();
+                return data.url;
+            } catch (e) {
+                console.error('Token fetch failed:', e);
+                return null;
+            }
+        }
+
+        // Check stream status and load player
+        async function checkStream() {
+            try {
+                const res = await fetch('/api/stream/status');
+                const data = await res.json();
+
+                if (data.isLive && !isLive) {
+                    isLive = true;
+                    statusBadge.textContent = 'Live';
+                    statusBadge.classList.remove('offline-badge');
+                    goLiveBtn.disabled = false;
+
+                    await tryInitStream();
+                } else if (data.isLive && isLive) {
+                    goLiveBtn.disabled = false;
+                    if (!player || player.error()) {
+                        await tryInitStream();
+                    }
+                } else if (!data.isLive && isLive) {
+                    isLive = false;
+                    statusBadge.textContent = 'Offline';
+                    statusBadge.classList.add('offline-badge');
+                    offlineOverlay.classList.remove('hidden');
+                    goLiveBtn.disabled = true;
+                    setReconnectState(false);
+                }
+            } catch (e) {
+                console.error('Status check failed:', e);
+                scheduleReconnect();
+            }
+        }
+
+        function toggleFullscreen() {
+            const container = document.querySelector('.player-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(() => { });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function goLive() {
+            if (!player || !player.liveTracker) return;
+            try {
+                player.liveTracker.seekToLiveEdge();
+                player.play().catch(() => { });
+            } catch (e) {
+                console.log('Go Live failed:', e);
+            }
+        }
+
+        // Start checking stream status
+        checkStream();
+        setInterval(checkStream, 3000);
+    </script>
+</body>
+
+</html>

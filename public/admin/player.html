@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player | Red Studio</title>
+    <meta name="description" content="Watch live streams and generate embed codes">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Plyr Theme Override */
+        :root {
+            --plyr-color-main: hsl(0 72.2% 50.6%);
+            --plyr-video-background: #000;
+            --plyr-font-family: 'Inter', sans-serif;
+        }
+
+        .plyr {
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .plyr--video .plyr__controls {
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+        }
+
+        /* Page specific styles */
+        .video-wrapper {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .player-card {
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .info-box {
+            background: hsl(var(--muted) / 0.3);
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 1rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.625rem 0;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-row:first-child {
+            padding-top: 0;
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .info-value {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8125rem;
+            color: hsl(var(--foreground));
+            background: hsl(var(--background));
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--border));
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            background: hsl(var(--muted) / 0.5);
+            padding: 0.25rem;
+            border-radius: var(--radius);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            background: transparent;
+            border: none;
+            border-radius: calc(var(--radius) - 2px);
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .tab-btn.active {
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: hsl(var(--foreground));
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Code Block */
+        .code-block {
+            position: relative;
+            background: hsl(var(--muted) / 0.3);
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 1rem;
+            padding-right: 5rem;
+        }
+
+        .code-block code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8125rem;
+            color: hsl(var(--foreground));
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        .code-copy-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <a href="/" class="logo">
+                    <div class="logo-icon">R</div>
+                    <span>Red Studio</span>
+                </a>
+                <nav class="nav">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/admin/" class="nav-link">Dashboard</a>
+                    <a href="/admin/player.html" class="nav-link active">Player</a>
+                    <a href="/admin/tokens.html" class="nav-link">Tokens</a>
+                    <a href="/stat" class="nav-link" target="_blank">Stats</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="container" style="max-width: 960px;">
+                <div class="page-header">
+                    <div class="page-header-content">
+                        <h1 class="page-title">Stream Player</h1>
+                        <p class="page-description">Watch live streams and generate embed codes for your website</p>
+                    </div>
+                </div>
+
+                <!-- Video Player -->
+                <div class="card player-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            Live Preview
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="video-wrapper">
+                            <video id="player" playsinline autoplay muted></video>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stream Settings -->
+                <div class="card mb-4" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3" />
+                                <path
+                                    d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                            </svg>
+                            Stream Settings
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-row mb-4" style="margin-bottom: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Server Address</label>
+                                <input type="text" class="form-input" id="serverUrl"
+                                    placeholder="http://localhost:8080">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Stream Name</label>
+                                <input type="text" class="form-input" id="streamName" value="stream"
+                                    placeholder="stream">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadStream()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                                height="16">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            Load Stream
+                        </button>
+                    </div>
+                </div>
+
+                <!-- OBS Config -->
+                <div class="card mb-4" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20V10M18 20V4M6 20v-4" />
+                            </svg>
+                            OBS Configuration
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-box">
+                            <div class="info-row">
+                                <span class="info-label">Server</span>
+                                <span class="info-value">rtmp://YOUR-SERVER/live</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Stream Key</span>
+                                <span class="info-value">stream?user=streamadmin&pass=***</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Embed Code -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="16 18 22 12 16 6" />
+                                <polyline points="8 6 2 12 8 18" />
+                            </svg>
+                            Embed Code
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="tabs">
+                            <button class="tab-btn active" data-tab="iframe">iFrame</button>
+                            <button class="tab-btn" data-tab="direct">Direct HLS</button>
+                            <button class="tab-btn" data-tab="video">Video Tag</button>
+                        </div>
+
+                        <div class="tab-panel active" id="panel-iframe">
+                            <div class="code-block">
+                                <button class="btn btn-secondary btn-sm code-copy-btn"
+                                    onclick="copyCode('iframeCode')">Copy</button>
+                                <code id="iframeCode"></code>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="panel-direct">
+                            <div class="code-block">
+                                <button class="btn btn-secondary btn-sm code-copy-btn"
+                                    onclick="copyCode('directCode')">Copy</button>
+                                <code id="directCode"></code>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="panel-video">
+                            <div class="code-block">
+                                <button class="btn btn-secondary btn-sm code-copy-btn"
+                                    onclick="copyCode('videoCode')">Copy</button>
+                                <code id="videoCode"></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-text">© <span id="year"></span> Red Studio. Built with NGINX-RTMP.</p>
+        </footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <div class="toast-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+            </svg>
+        </div>
+        <span class="toast-message" id="toastMessage">Copied!</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const video = document.getElementById('player');
+        const serverInput = document.getElementById('serverUrl');
+        const streamInput = document.getElementById('streamName');
+        let hls = null;
+
+        const HLS_SECRET = 'hLs_T0k3n_S3cr3t_2024!';
+        const TOKEN_VALIDITY = 604800; // 7 days in seconds
+
+        serverInput.value = window.location.origin;
+
+        function hexToBase64Url(hex) {
+            const bytes = hex.match(/.{2}/g).map(byte => parseInt(byte, 16));
+            const base64 = btoa(String.fromCharCode(...bytes));
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        function generateHlsToken(uri) {
+            const expires = Math.floor(Date.now() / 1000) + TOKEN_VALIDITY;
+            const hexHash = md5(expires + uri + ' ' + HLS_SECRET);
+            return { md5: hexToBase64Url(hexHash), expires };
+        }
+
+        function getHlsUrl() {
+            const server = serverInput.value.replace(/\/$/, '');
+            const stream = streamInput.value || 'stream';
+            const uri = `/hls/${stream}.m3u8`;
+            const token = generateHlsToken(uri);
+            return `${server}${uri}?md5=${token.md5}&expires=${token.expires}`;
+        }
+
+        function getEmbedUrl() {
+            const server = serverInput.value.replace(/\/$/, '');
+            const stream = streamInput.value || 'stream';
+            const uri = `/hls/${stream}.m3u8`;
+            const token = generateHlsToken(uri);
+            return `${server}/embed.html?stream=${stream}&token=${token.md5}&expires=${token.expires}`;
+        }
+
+        function updateEmbedCodes() {
+            const embedUrl = getEmbedUrl();
+            const hlsUrl = getHlsUrl();
+
+            document.getElementById('iframeCode').textContent =
+                `<iframe 
+  src="${embedUrl}" 
+  width="640" 
+  height="360" 
+  frameborder="0" 
+  allowfullscreen>
+</iframe>`;
+
+            document.getElementById('directCode').textContent = hlsUrl;
+
+            document.getElementById('videoCode').textContent =
+                `<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"><\/script>
+<video id="myVideo" controls width="640" height="360"></video>
+<script>
+  const video = document.getElementById('myVideo');
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource('${hlsUrl}');
+    hls.attachMedia(video);
+  }
+<\/script>`;
+        }
+
+        const plyrPlayer = new Plyr(video, {
+            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'pip', 'airplay', 'fullscreen'],
+            settings: ['quality', 'speed'],
+            tooltips: { controls: true, seek: true },
+            keyboard: { focused: true, global: true },
+            autoplay: true,
+            muted: true
+        });
+
+        function loadStream() {
+            if (hls) hls.destroy();
+            const hlsUrl = getHlsUrl();
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 6,
+                    liveDurationInfinity: true,
+                    maxBufferLength: 10,
+                    maxMaxBufferLength: 20,
+                    lowLatencyMode: true,
+                    backBufferLength: 10
+                });
+                hls.loadSource(hlsUrl);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.muted = true;
+                    plyrPlayer.play().catch(() => { });
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            hls.startLoad();
+                        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                            hls.recoverMediaError();
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = hlsUrl;
+                video.muted = true;
+                video.play().catch(() => { });
+            }
+            updateEmbedCodes();
+        }
+
+        function copyCode(elementId) {
+            const code = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(code);
+            showToast('Copied to clipboard!');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.add('show', 'success');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Tab handling
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        serverInput.addEventListener('input', updateEmbedCodes);
+        streamInput.addEventListener('input', updateEmbedCodes);
+
+        updateEmbedCodes();
+        loadStream();
+        // Smart token refresh - tracks expiry and refreshes 1 hour before
+        let tokenExpiryTime = Math.floor(Date.now() / 1000) + TOKEN_VALIDITY;
+
+        function checkTokenRefresh() {
+            const now = Math.floor(Date.now() / 1000);
+            const timeUntilExpiry = tokenExpiryTime - now;
+
+            // Refresh if less than 1 hour until expiry
+            if (timeUntilExpiry < 3600) {
+                console.log('Refreshing HLS token before expiry...');
+                tokenExpiryTime = now + TOKEN_VALIDITY;
+                updateEmbedCodes();
+                loadStream();
+            }
+        }
+
+        // Check every 30 minutes if token needs refresh
+        setInterval(checkTokenRefresh, 1800000);
+    </script>
+</body>
+
+</html>

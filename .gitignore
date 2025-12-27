@@ -1,0 +1,36 @@
+# Logs
+logs/*.log
+*.log
+
+# Temporary HLS files
+temp/
+*.ts
+*.m3u8
+
+# Node.js
+node_modules/
+api/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows executables (not needed on Linux server)
+*.exe
+
+# Archives
+*.tar.gz
+*.zip
+
+# Local config backups
+*.backup
+conf/*.backup
+
+# IDE
+.vscode/
+.idea/
+
+# Sensitive files (add your actual secrets here)
+# .env
+# api/config.local.json

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Studio Embed Player</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <style>
+        :root {
+            --primary: #dc2626;
+            --primary-glow: rgba(220, 38, 38, 0.3);
+            --plyr-color-main: var(--primary);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .embed-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .plyr {
+            height: 100%;
+            --plyr-video-background: #000;
+        }
+
+        .plyr--video {
+            height: 100%;
+        }
+
+        .plyr__video-wrapper {
+            height: 100%;
+        }
+
+        .plyr--video .plyr__controls {
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        }
+
+        .plyr__control--overlaid {
+            background: var(--primary) !important;
+        }
+
+        /* YouTube-style Live Button in Controls */
+        .live-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            background: var(--primary);
+            border-radius: 3px;
+            font-family: -apple-system, sans-serif;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        .live-control.behind {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .live-control .live-dot {
+            width: 5px;
+            height: 5px;
+            background: white;
+            border-radius: 50%;
+            animation: btn-pulse 1.5s infinite;
+        }
+
+        .live-control.behind .live-dot {
+            animation: none;
+            opacity: 0.5;
+        }
+
+        @keyframes btn-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Logo watermark */
+        .watermark {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px 6px 6px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            z-index: 10;
+            text-decoration: none;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            transition: background 0.2s;
+        }
+
+        .watermark:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .watermark-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        .watermark-text {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Live indicator */
+        .live-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: var(--primary);
+            border-radius: 6px;
+            z-index: 10;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .live-indicator::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .live-indicator.offline {
+            background: #52525b;
+        }
+
+        .live-indicator.offline::before {
+            animation: none;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Click to play overlay */
+        .play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 15;
+            transition: opacity 0.3s;
+        }
+
+        .play-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .play-btn {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 40px var(--primary-glow);
+        }
+
+        .play-btn svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+            margin-left: 3px;
+        }
+
+        /* Error state */
+        .error-overlay {
+            position: absolute;
+            inset: 0;
+            background: #111;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-overlay.visible {
+            display: flex;
+        }
+
+        .error-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .error-text {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .error-hint {
+            font-size: 0.8125rem;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="embed-container">
+        <video id="player" playsinline></video>
+
+        <a href="/" target="_blank" class="watermark">
+            <div class="watermark-icon">R</div>
+            <span class="watermark-text">Red Studio</span>
+        </a>
+
+        <div id="liveIndicator" class="live-indicator offline">Offline</div>
+
+        <div class="play-overlay" id="playOverlay">
+            <div class="play-btn">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="error-overlay" id="errorOverlay">
+            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div class="error-text">Stream Unavailable</div>
+            <div class="error-hint">The stream is currently offline. Please check back later.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.19.0/js/md5.min.js"></script>
+    <script>
+        const video = document.getElementById('player');
+        const liveIndicator = document.getElementById('liveIndicator');
+        const playOverlay = document.getElementById('playOverlay');
+        const errorOverlay = document.getElementById('errorOverlay');
+
+        // Parse URL params for token-based auth
+        const params = new URLSearchParams(window.location.search);
+        const streamName = params.get('stream') || 'stream';
+        const providedToken = params.get('token');
+        const providedExpires = params.get('expires');
+
+        // Token validity
+        const TOKEN_VALIDITY = 604800; // 7 days in seconds
+
+        // Fetch secure token from server
+        async function getHlsUrl() {
+            const uri = `/hls/${streamName}.m3u8`;
+            // Use provided token if available
+            if (providedToken && providedExpires) {
+                return `${uri}?md5=${providedToken}&expires=${providedExpires}`;
+            }
+            // Fetch from server (secure)
+            try {
+                const res = await fetch(`/api/token/hls?stream=${streamName}`);
+                const data = await res.json();
+                return data.url;
+            } catch (e) {
+                console.error('Token fetch failed:', e);
+                return null;
+            }
+        }
+
+        let hls;
+        let liveControlEl = null;
+        let isStreamLive = false;
+
+        const player = new Plyr(video, {
+            controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+            hideControls: true,
+            clickToPlay: true,
+            seekTime: 5
+        });
+
+        // Add LIVE button to controls
+        player.on('ready', () => {
+            const controls = document.querySelector('.plyr__controls');
+            if (controls && !document.querySelector('.live-control')) {
+                liveControlEl = document.createElement('div');
+                liveControlEl.className = 'live-control';
+                liveControlEl.innerHTML = '<span class="live-dot"></span><span>LIVE</span>';
+                liveControlEl.title = 'Jump to live';
+                liveControlEl.onclick = jumpToLive;
+
+                const playBtn = controls.querySelector('[data-plyr="play"]');
+                if (playBtn) {
+                    playBtn.parentNode.insertBefore(liveControlEl, playBtn.nextSibling);
+                }
+            }
+        });
+
+        // Update live indicator when seeking
+        video.addEventListener('timeupdate', () => {
+            if (!hls || !liveControlEl || !isStreamLive) return;
+
+            const behindLive = video.duration - video.currentTime;
+
+            if (behindLive > 5) {
+                liveControlEl.classList.add('behind');
+                const mins = Math.floor(behindLive / 60);
+                const secs = Math.floor(behindLive % 60);
+                const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `0:${secs.toString().padStart(2, '0')}`;
+                liveControlEl.innerHTML = `<span class="live-dot"></span><span>-${timeStr}</span>`;
+            } else {
+                liveControlEl.classList.remove('behind');
+                liveControlEl.innerHTML = '<span class="live-dot"></span><span>LIVE</span>';
+            }
+        });
+
+        function jumpToLive() {
+            if (video.duration) {
+                video.currentTime = video.duration;
+                video.play().catch(() => { });
+            }
+        }
+
+        function setLiveStatus(live) {
+            isStreamLive = live;
+            if (live) {
+                liveIndicator.textContent = 'Live';
+                liveIndicator.classList.remove('offline');
+                errorOverlay.classList.remove('visible');
+            } else {
+                liveIndicator.textContent = 'Offline';
+                liveIndicator.classList.add('offline');
+            }
+        }
+
+        function showError() {
+            errorOverlay.classList.add('visible');
+            setLiveStatus(false);
+        }
+
+        async function initPlayer() {
+            if (hls) hls.destroy();
+            const hlsUrl = await getHlsUrl();
+            if (!hlsUrl) {
+                showError();
+                setTimeout(initPlayer, 10000);
+                return;
+            }
+
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 6,
+                    liveDurationInfinity: true,
+                    maxBufferLength: 10,
+                    lowLatencyMode: true
+                });
+                hls.loadSource(hlsUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    setLiveStatus(true);
+                    errorOverlay.classList.remove('visible');
+                });
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            showError();
+                            setTimeout(initPlayer, 10000);
+                        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                            hls.recoverMediaError();
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = hlsUrl;
+                video.addEventListener('loadedmetadata', () => setLiveStatus(true));
+                video.addEventListener('error', () => {
+                    showError();
+                    setTimeout(initPlayer, 10000);
+                });
+            }
+        }
+
+        // Click to play
+        playOverlay.addEventListener('click', () => {
+            playOverlay.classList.add('hidden');
+            video.muted = false;
+            video.play().catch(() => { });
+        });
+
+        // Smart token refresh - tracks expiry and refreshes 1 hour before
+        let tokenExpiryTime = providedExpires ? parseInt(providedExpires) : Math.floor(Date.now() / 1000) + TOKEN_VALIDITY;
+
+        function checkTokenRefresh() {
+            const now = Math.floor(Date.now() / 1000);
+            const timeUntilExpiry = tokenExpiryTime - now;
+
+            // Refresh if less than 1 hour until expiry
+            if (timeUntilExpiry < 3600) {
+                console.log('Refreshing HLS token before expiry...');
+                tokenExpiryTime = now + TOKEN_VALIDITY;
+                initPlayer();
+            }
+        }
+
+        // Check every 30 minutes if token needs refresh
+        setInterval(checkTokenRefresh, 1800000);
+
+        // Retry on failure
+        setInterval(() => {
+            if (liveIndicator.classList.contains('offline')) {
+                initPlayer();
+            }
+        }, 15000);
+
+        initPlayer();
+    </script>
+</body>
+
+</html>
