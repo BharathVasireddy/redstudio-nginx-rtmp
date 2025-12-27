@@ -121,6 +121,13 @@
             background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
             height: 50px;
             padding: 0 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Push PiP, Live indicator, and Fullscreen to the right */
+        .video-js .vjs-picture-in-picture-control {
+            margin-left: auto;
         }
 
         .video-js .vjs-play-progress,
@@ -132,15 +139,22 @@
             box-shadow: 0 0 0 2px var(--primary-glow);
         }
 
-        /* Hide live and progress controls for a minimal live UI */
-        .vjs-live-control {
+        /* Hide live indicator in control bar */
+        .video-js .vjs-live-control {
             display: none !important;
         }
 
         /* Hide time display and progress bar for live streams */
         .video-js .vjs-progress-control,
         .video-js .vjs-time-control,
-        .video-js .vjs-remaining-time {
+        .video-js .vjs-remaining-time,
+        .video-js .vjs-current-time,
+        .video-js .vjs-duration {
+            display: none !important;
+        }
+
+        /* Force hide progress bar and scrubber */
+        .video-js.vjs-live .vjs-progress-control {
             display: none !important;
         }
 
@@ -182,16 +196,7 @@
         }
 
         .live-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--primary);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
+            display: none !important;
         }
 
         .live-badge::before {
