@@ -1,11 +1,13 @@
 # Logs
 logs/*.log
 *.log
+logs/nginx.pid
 
 # Temporary HLS files
 temp/
 *.ts
 *.m3u8
+temp/temp.txt
 
 # Node.js
 node_modules/
