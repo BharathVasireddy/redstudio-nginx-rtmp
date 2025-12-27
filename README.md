@@ -58,6 +58,7 @@ Currently deployed on **Oracle Cloud**.
 
 ### Zero-Downtime Deployment
 Push to `main` branch → GitHub Actions deploys automatically.
+Deploy test marker: 2025-12-27
 
 GitHub Actions secrets required:
 - `ORACLE_HOST`
