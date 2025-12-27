@@ -217,7 +217,7 @@
                 </svg>
             </div>
             <div class="offline-text" id="offlineText">Stream Offline</div>
-            <div class="offline-hint" id="offlineHint">Waiting for broadcast...</div>
+            <div class="offline-hint" id="offlineHint">Waiting for broadcast. Tap the video to retry.</div>
         </div>
     </div>
 
@@ -303,11 +303,11 @@
                 offlineOverlay.classList.remove('hidden');
                 offlineIcon.classList.add('loading');
                 offlineText.textContent = 'Reconnecting';
-                offlineHint.textContent = 'Restoring stream...';
+                offlineHint.textContent = 'Restoring stream. Tap the video to retry.';
             } else {
                 offlineIcon.classList.remove('loading');
                 offlineText.textContent = 'Stream Offline';
-                offlineHint.textContent = 'Waiting for broadcast...';
+                offlineHint.textContent = 'Waiting for broadcast. Tap the video to retry.';
             }
         }
 
