@@ -175,7 +175,7 @@
 <body>
     <div class="video-container">
         <!-- Video.js Player -->
-        <video id="player" class="video-js vjs-live" controls playsinline preload="auto">
+        <video id="player" class="video-js vjs-live" controls playsinline preload="auto" muted>
         </video>
 
         <!-- Offline Overlay -->
@@ -286,6 +286,7 @@
             setReconnectState(true);
             tryInitStream();
         }
+
         // Start player
         tryInitStream();
         setInterval(() => {
@@ -293,6 +294,14 @@
                 scheduleReconnect();
             }
         }, 3000);
+
+        // Allow tap-to-play on mobile if autoplay is blocked
+        offlineOverlay.addEventListener('click', () => {
+            tryInitStream();
+            if (player) {
+                player.play().catch(() => {});
+            }
+        });
     </script>
 </body>
 </html>
