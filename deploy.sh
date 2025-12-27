@@ -81,7 +81,11 @@ fi
 
 if [ -x "${NGINX_BIN}" ]; then
     sudo "${NGINX_BIN}" -t
-    if [ -s "${NGINX_PID}" ] && sudo kill -0 "$(cat "${NGINX_PID}")" 2>/dev/null; then
+    PID=""
+    if [ -s "${NGINX_PID}" ]; then
+        PID="$(tr -d '[:space:]' < "${NGINX_PID}")"
+    fi
+    if [ -n "${PID}" ] && [ "${PID}" -eq "${PID}" ] 2>/dev/null && sudo kill -0 "${PID}" 2>/dev/null; then
         echo "🔄 Reloading NGINX..."
         sudo "${NGINX_BIN}" -s reload
     else
