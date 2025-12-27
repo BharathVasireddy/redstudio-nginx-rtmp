@@ -213,6 +213,8 @@
                 return;
             }
 
+            const useNativeHls = videojs.browser.IS_IOS || videojs.browser.IS_ANY_SAFARI;
+
             player = videojs('player', {
                 liveui: true,
                 liveTracker: {
@@ -221,7 +223,7 @@
                 },
                 html5: {
                     vhs: {
-                        overrideNative: true
+                        overrideNative: !useNativeHls
                     },
                     nativeAudioTracks: false,
                     nativeVideoTracks: false
