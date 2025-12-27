@@ -1,0 +1,8 @@
+[Unit]
+Description=Update HLS viewer count
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+ExecStart=/var/www/nginx-rtmp-module/scripts/hls-viewers.sh

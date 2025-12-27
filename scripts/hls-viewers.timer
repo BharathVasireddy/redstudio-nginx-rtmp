@@ -1,0 +1,10 @@
+[Unit]
+Description=Run HLS viewer count updater
+
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=10s
+Unit=hls-viewers.service
+
+[Install]
+WantedBy=timers.target

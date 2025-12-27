@@ -40,8 +40,10 @@ if [ "${STASH_CREATED}" = "1" ]; then
     fi
 fi
 
-# Ensure FFmpeg scripts are executable (kept for optional use)
-chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" 2>/dev/null || true
+# Ensure scripts are executable (kept for optional use)
+chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" \
+  "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" \
+  "${REPO_DIR}/scripts/hls-viewers.sh" 2>/dev/null || true
 
 # Ensure runtime directories are writable by NGINX
 sudo mkdir -p "${REPO_DIR}/temp/hls" "${REPO_DIR}/logs"
@@ -61,6 +63,14 @@ elif [ -f "${NGINX_CONF_PATH}" ]; then
 else
     echo "📄 Installing NGINX config..."
     sudo cp "${REPO_DIR}/conf/nginx.conf" "${NGINX_CONF_PATH}"
+fi
+
+# Install/update HLS viewer counter timer (server only)
+if command -v systemctl >/dev/null 2>&1; then
+    sudo cp "${REPO_DIR}/scripts/hls-viewers.service" /etc/systemd/system/hls-viewers.service
+    sudo cp "${REPO_DIR}/scripts/hls-viewers.timer" /etc/systemd/system/hls-viewers.timer
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now hls-viewers.timer >/dev/null 2>&1 || true
 fi
 
 # Reload NGINX
