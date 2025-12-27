@@ -15,6 +15,22 @@ Minimal live streaming server built on the nginx-rtmp-module.
 2) Server: `rtmp://<server-ip>/live`
 3) Stream key: `stream`
 
+## Local (macOS / Linux)
+
+```bash
+./stream-start.sh
+```
+
+Watch at `http://localhost:8080/` and stream to:
+`rtmp://localhost/live` with stream key `stream`.
+
+## Local (Windows)
+
+Run `stream-start.bat`.
+
+Watch at `http://localhost:8080/` and stream to:
+`rtmp://localhost/live` with stream key `stream`.
+
 ## Deployment
 
 Push to `main` to deploy via GitHub Actions, or run manually:
