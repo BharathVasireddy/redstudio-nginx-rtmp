@@ -88,6 +88,8 @@ echo "📁 Creating directories..."
 mkdir -p /var/www/nginx-rtmp-module/temp/hls
 mkdir -p /var/www/nginx-rtmp-module/logs
 chown -R www-data:www-data /var/www/nginx-rtmp-module
+chown -R nobody:nogroup /var/www/nginx-rtmp-module/temp /var/www/nginx-rtmp-module/logs
+chmod -R 775 /var/www/nginx-rtmp-module/temp /var/www/nginx-rtmp-module/logs
 
 # Copy nginx config
 echo ""

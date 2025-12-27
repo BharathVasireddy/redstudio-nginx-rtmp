@@ -47,6 +47,11 @@ fi
 # Ensure FFmpeg scripts are executable
 chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" 2>/dev/null || true
 
+# Ensure runtime directories are writable by the NGINX worker/FFmpeg user
+sudo mkdir -p "${REPO_DIR}/temp/hls" "${REPO_DIR}/logs"
+sudo chown -R nobody:nogroup "${REPO_DIR}/temp" "${REPO_DIR}/logs" 2>/dev/null || true
+sudo chmod -R 775 "${REPO_DIR}/temp" "${REPO_DIR}/logs" 2>/dev/null || true
+
 # Install/update API dependencies
 if [ -f "${REPO_DIR}/api/package.json" ]; then
     echo "📦 Installing API dependencies..."
