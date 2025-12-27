@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Red Studio | Live Streaming</title>
     <meta name="description" content="Professional live streaming platform by Red Studio. Watch live 24/7.">
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#f8fafc">
 
     <!-- Open Graph -->
     <meta property="og:title" content="Red Studio Live">
@@ -23,14 +23,14 @@
         :root {
             --primary: #dc2626;
             --primary-glow: rgba(220, 38, 38, 0.4);
-            --bg-dark: #0a0a0a;
-            --bg-card: #111111;
-            --bg-overlay: rgba(0, 0, 0, 0.6);
-            --text-primary: #ffffff;
-            --text-secondary: rgba(255, 255, 255, 0.7);
-            --text-muted: rgba(255, 255, 255, 0.5);
-            --border-subtle: rgba(255, 255, 255, 0.1);
-            --success: #22c55e;
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-overlay: rgba(15, 23, 42, 0.06);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border-subtle: rgba(15, 23, 42, 0.12);
+            --success: #16a34a;
         }
 
         * {
@@ -92,17 +92,17 @@
 
         /* Player Section */
         .player-section {
-            max-width: 1200px;
+            max-width: 960px;
             margin: 0 auto;
             padding: 0 1rem 2rem;
         }
 
         .player-container {
             position: relative;
-            background: #000;
+            background: #0b0b0b;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
         }
 
         /* Video.js Customization */
@@ -118,7 +118,7 @@
         }
 
         .video-js .vjs-control-bar {
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+            background: linear-gradient(transparent, rgba(15, 23, 42, 0.85));
             height: 50px;
             padding: 0 10px;
             display: flex;
@@ -209,7 +209,8 @@
         }
 
         .offline-badge {
-            background: #52525b;
+            background: #e2e8f0;
+            color: #475569;
         }
 
         .offline-badge::before {
@@ -260,7 +261,7 @@
         .offline-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.96) 0%, rgba(241, 245, 249, 0.98) 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -275,7 +276,7 @@
         .offline-icon {
             width: 80px;
             height: 80px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.08);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -314,13 +315,13 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%) translateY(20px);
-            background: rgba(255, 255, 255, 0.95);
-            color: #111;
+            background: #ffffff;
+            color: #0f172a;
             padding: 12px 24px;
             border-radius: 8px;
             font-size: 0.875rem;
             font-weight: 500;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
