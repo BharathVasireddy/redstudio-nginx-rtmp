@@ -128,6 +128,31 @@
             display: none;
         }
 
+        .tap-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.2) 100%);
+            z-index: 9;
+        }
+
+        .tap-overlay.hidden {
+            display: none;
+        }
+
+        .tap-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.85rem 1.75rem;
+            background: var(--primary);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         .offline-icon {
             width: 120px;
             height: 120px;
@@ -198,6 +223,10 @@
             .mobile-fallback {
                 display: block;
             }
+
+            .tap-overlay {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -207,6 +236,10 @@
         <!-- Video.js Player -->
         <video id="player" class="video-js vjs-live" controls playsinline preload="auto" muted>
         </video>
+
+        <div class="tap-overlay hidden" id="tapOverlay">
+            <button class="tap-button" type="button">Tap to Start</button>
+        </div>
 
         <!-- Offline Overlay -->
         <div class="offline-overlay" id="offlineOverlay">
@@ -241,12 +274,14 @@
         const offlineText = document.getElementById('offlineText');
         const offlineHint = document.getElementById('offlineHint');
         const offlineIcon = document.getElementById('offlineIcon');
+        const tapOverlay = document.getElementById('tapOverlay');
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
         // Initialize Video.js player
         function initPlayer(url) {
             if (player) {
                 player.src({ src: url, type: 'application/x-mpegURL' });
-                player.play().catch(() => {});
+                attemptPlay();
                 return;
             }
 
@@ -277,11 +312,13 @@
             player.on('playing', () => {
                 offlineOverlay.classList.add('hidden');
                 setReconnectState(false);
+                hideTapOverlay();
             });
 
             player.on('error', () => {
                 console.log('Player error, will retry');
                 scheduleReconnect();
+                showTapOverlay();
             });
 
             player.on('stalled', () => {
@@ -295,6 +332,12 @@
             player.on('loadedmetadata', () => {
                 setReconnectState(false);
             });
+
+            player.on('pause', () => {
+                showTapOverlay();
+            });
+
+            attemptPlay();
         }
 
         function setReconnectState(active) {
@@ -326,8 +369,33 @@
             tryInitStream();
         }
 
+        function showTapOverlay() {
+            if (tapOverlay && isMobile) {
+                tapOverlay.classList.remove('hidden');
+            }
+        }
+
+        function hideTapOverlay() {
+            if (tapOverlay) {
+                tapOverlay.classList.add('hidden');
+            }
+        }
+
+        function attemptPlay() {
+            if (!player) {
+                return;
+            }
+            const playPromise = player.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {
+                    showTapOverlay();
+                });
+            }
+        }
+
         // Start player
         tryInitStream();
+        showTapOverlay();
         setInterval(() => {
             if (!player || player.error()) {
                 scheduleReconnect();
@@ -337,10 +405,16 @@
         // Allow tap-to-play on mobile if autoplay is blocked
         offlineOverlay.addEventListener('click', () => {
             tryInitStream();
-            if (player) {
-                player.play().catch(() => {});
-            }
+            attemptPlay();
         });
+
+        if (tapOverlay) {
+            tapOverlay.addEventListener('click', () => {
+                hideTapOverlay();
+                tryInitStream();
+                attemptPlay();
+            });
+        }
     </script>
 </body>
 </html>
