@@ -11,6 +11,8 @@ NGINX_BIN="/usr/local/nginx/sbin/nginx"
 FORCE_NGINX_CONF="${FORCE_NGINX_CONF:-0}"
 API_SERVICE_PATH="/etc/systemd/system/nginx-rtmp-api.service"
 FORCE_API_SERVICE="${FORCE_API_SERVICE:-0}"
+SAFE_DEPLOY="${SAFE_DEPLOY:-1}"
+FORCE_DEPLOY="${FORCE_DEPLOY:-0}"
 
 echo "🚀 Deploying Red Studio updates..."
 
@@ -80,24 +82,39 @@ if [ -f "${API_SERVICE_PATH}" ] || [ "${FORCE_API_SERVICE}" = "1" ]; then
     sudo systemctl daemon-reload
 fi
 
+# Safe deploy: avoid reload/restart if stream is live
+SKIP_RELOAD=0
+if [ "${SAFE_DEPLOY}" = "1" ] && [ "${FORCE_DEPLOY}" != "1" ]; then
+    if command -v curl >/dev/null 2>&1; then
+        STREAM_STATUS="$(curl -s --max-time 2 http://127.0.0.1:3000/api/stream/status 2>/dev/null || \
+            curl -s --max-time 2 http://127.0.0.1:8080/api/stream/status 2>/dev/null || true)"
+        if echo "${STREAM_STATUS}" | grep -q '"isLive"[[:space:]]*:[[:space:]]*true'; then
+            echo "⚠️ Stream is live. Skipping NGINX reload and API restart (set FORCE_DEPLOY=1 to override)."
+            SKIP_RELOAD=1
+        fi
+    fi
+fi
+
 # Reload NGINX
 if [ ! -x "${NGINX_BIN}" ]; then
     NGINX_BIN="$(command -v nginx || true)"
 fi
 
-if [ -x "${NGINX_BIN}" ]; then
+if [ -x "${NGINX_BIN}" ] && [ "${SKIP_RELOAD}" = "0" ]; then
     echo "🔄 Reloading NGINX..."
     sudo "${NGINX_BIN}" -t
     sudo "${NGINX_BIN}" -s reload
 else
-    echo "⚠️ NGINX binary not found; skipping reload."
+    if [ "${SKIP_RELOAD}" = "0" ]; then
+        echo "⚠️ NGINX binary not found; skipping reload."
+    fi
 fi
 
 # Restart Node.js API
-if [ -f "${API_SERVICE_PATH}" ]; then
+if [ -f "${API_SERVICE_PATH}" ] && [ "${SKIP_RELOAD}" = "0" ]; then
     echo "🔄 Restarting API (systemd)..."
     sudo systemctl restart nginx-rtmp-api
-elif command -v pm2 &> /dev/null; then
+elif [ "${SKIP_RELOAD}" = "0" ] && command -v pm2 &> /dev/null; then
     echo "🔄 Restarting API (PM2)..."
     pm2 restart redstudio-api 2>/dev/null || pm2 restart server 2>/dev/null || pm2 start api/server.js --name redstudio-api
 fi
