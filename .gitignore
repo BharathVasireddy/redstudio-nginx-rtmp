@@ -21,6 +21,9 @@ desktop.ini
 *.tar.gz
 *.zip
 
+# Generated viewer stats
+public/hls-viewers.json
+
 # Local config backups
 *.backup
 conf/*.backup

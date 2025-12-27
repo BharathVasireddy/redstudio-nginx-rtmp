@@ -89,8 +89,14 @@ if [ -x "${NGINX_BIN}" ]; then
         echo "🔄 Reloading NGINX..."
         sudo "${NGINX_BIN}" -s reload
     else
-        echo "🚀 Starting NGINX..."
-        sudo "${NGINX_BIN}"
+        MASTER_PID="$(pgrep -o -f 'nginx: master' || true)"
+        if [ -n "${MASTER_PID}" ]; then
+            echo "🔄 Reloading NGINX (signal)..."
+            sudo kill -HUP "${MASTER_PID}"
+        else
+            echo "🚀 Starting NGINX..."
+            sudo "${NGINX_BIN}"
+        fi
     fi
 else
     echo "⚠️ NGINX binary not found; skipping reload."
