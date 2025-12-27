@@ -195,10 +195,10 @@
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
         let player = null;
-        let isLive = false;
         let isReconnecting = false;
         let lastInitAt = 0;
         const REINIT_COOLDOWN_MS = 3000;
+        const STREAM_URL = '/hls/stream.m3u8';
 
         const offlineOverlay = document.getElementById('offlineOverlay');
         const offlineText = document.getElementById('offlineText');
@@ -272,64 +272,27 @@
             }
         }
 
-        async function tryInitStream() {
+        function tryInitStream() {
             const now = Date.now();
             if (now - lastInitAt < REINIT_COOLDOWN_MS) {
                 return;
             }
 
             lastInitAt = now;
-            const url = await getStreamUrl();
-            if (url) {
-                initPlayer(url);
-            }
+            initPlayer(STREAM_URL);
         }
 
         function scheduleReconnect() {
-            if (!isLive) return;
             setReconnectState(true);
             tryInitStream();
         }
-
-        // Get HLS stream URL with token
-        async function getStreamUrl() {
-            try {
-                const res = await fetch('/api/token/hls?stream=master');
-                const data = await res.json();
-                return data.url;
-            } catch (e) {
-                console.error('Token fetch failed:', e);
-                return null;
-            }
-        }
-
-        // Check stream status and load player
-        async function checkStream() {
-            try {
-                const res = await fetch('/api/stream/status');
-                const data = await res.json();
-
-                if (data.isLive && !isLive) {
-                    isLive = true;
-                    await tryInitStream();
-                } else if (data.isLive && isLive) {
-                    if (!player || player.error()) {
-                        await tryInitStream();
-                    }
-                } else if (!data.isLive && isLive) {
-                    isLive = false;
-                    offlineOverlay.classList.remove('hidden');
-                    setReconnectState(false);
-                }
-            } catch (e) {
-                console.error('Status check failed:', e);
+        // Start player
+        tryInitStream();
+        setInterval(() => {
+            if (!player || player.error()) {
                 scheduleReconnect();
             }
-        }
-
-        // Start checking stream status
-        checkStream();
-        setInterval(checkStream, 3000);
+        }, 3000);
     </script>
 </body>
 </html>
