@@ -47,62 +47,22 @@
             min-height: 100vh;
         }
 
-        /* Hero Section - Compact */
-        .hero {
-            text-align: center;
-            padding: 2rem 1rem 1.5rem;
-            background: var(--bg-dark);
-        }
-
-        .hero-logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 1rem;
-        }
-
-        .hero-icon {
-            width: 56px;
-            height: 56px;
-            background: var(--primary);
-            border-radius: 14px;
+        body {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: white;
-            box-shadow: 0 0 30px var(--primary-glow);
+            justify-content: flex-start;
+            padding: 2rem 1rem 3rem;
         }
 
-        .hero-brand {
-            text-align: left;
-        }
-
-        .hero-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .hero-subtitle {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        /* Player Section */
-        .player-section {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 0 1rem 2rem;
-        }
-
-        .player-container {
+        .player-card {
             position: relative;
+            width: min(96vw, 960px);
             background: #0b0b0b;
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+            border: 1px solid rgba(15, 23, 42, 0.12);
         }
 
         /* Video.js Customization */
@@ -159,104 +119,6 @@
         }
 
         /* Stream Info Bar */
-        .stream-info {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            background: var(--bg-card);
-            border-top: 1px solid var(--border-subtle);
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .stream-meta {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .meta-item svg {
-            width: 16px;
-            height: 16px;
-            opacity: 0.7;
-        }
-
-        .meta-value {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .live-badge {
-            display: none !important;
-        }
-
-        .live-badge::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: white;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        .offline-badge {
-            background: #e2e8f0;
-            color: #475569;
-        }
-
-        .offline-badge::before {
-            animation: none;
-        }
-
-        .stream-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .action-btn {
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .action-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .action-btn.primary {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-
-        .action-btn.primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         /* Offline Overlay */
         .offline-overlay {
             position: absolute;
@@ -301,14 +163,6 @@
             color: var(--text-secondary);
         }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: var(--text-muted);
-            font-size: 0.8125rem;
-        }
-
         /* Toast */
         .toast {
             position: fixed;
@@ -334,85 +188,34 @@
             transform: translateX(-50%) translateY(0);
         }
 
-        /* Responsive */
         @media (max-width: 640px) {
-            .hero {
-                padding: 1.5rem 1rem;
-            }
-
-            .hero-icon {
-                width: 48px;
-                height: 48px;
-                font-size: 1.25rem;
-            }
-
-            .hero-title {
-                font-size: 1.25rem;
-            }
-
-            .stream-info {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .stream-actions {
-                width: 100%;
-            }
-
-            .action-btn {
-                flex: 1;
-                justify-content: center;
+            body {
+                padding: 1.5rem 0.75rem 2.5rem;
             }
         }
     </style>
 </head>
 
 <body>
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-logo">
-            <div class="hero-icon">R</div>
-            <div class="hero-brand">
-                <div class="hero-title">Red Studio</div>
-                <div class="hero-subtitle">Live Streaming Platform</div>
+    <div class="player-card">
+        <!-- Video.js Player -->
+        <video id="player" class="video-js vjs-big-play-centered vjs-live" controls playsinline preload="auto"
+            poster="/images/offline.png">
+        </video>
+
+        <!-- Offline Overlay -->
+        <div class="offline-overlay" id="offlineOverlay">
+            <div class="offline-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
             </div>
+            <div class="offline-text">Stream Offline</div>
+            <div class="offline-hint">Waiting for broadcast to start...</div>
         </div>
-    </section>
-
-    <!-- Player Section -->
-    <section class="player-section">
-        <div class="player-container">
-            <!-- Video.js Player -->
-            <video id="player" class="video-js vjs-big-play-centered vjs-live" controls playsinline preload="auto"
-                poster="/images/offline.png">
-            </video>
-
-            <!-- Offline Overlay -->
-            <div class="offline-overlay" id="offlineOverlay">
-                <div class="offline-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <polygon points="23 7 16 12 23 17 23 7" />
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                    </svg>
-                </div>
-                <div class="offline-text">Stream Offline</div>
-                <div class="offline-hint">Waiting for broadcast to start...</div>
-            </div>
-
-            <!-- Stream Info Bar -->
-            <div class="stream-info">
-                <div class="stream-meta">
-                    <span id="statusBadge" class="live-badge offline-badge">Offline</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <p>© <span id="year"></span> Red Studio.</p>
-    </footer>
+    </div>
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
@@ -420,9 +223,6 @@
     <!-- Scripts -->
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
-        document.getElementById('year').textContent = new Date().getFullYear();
-
-        const statusBadge = document.getElementById('statusBadge');
         const offlineOverlay = document.getElementById('offlineOverlay');
         const STREAM_URL = '/hls/stream.m3u8';
         let player = null;
@@ -461,14 +261,10 @@
 
             player.on('playing', () => {
                 offlineOverlay.classList.add('hidden');
-                statusBadge.textContent = 'Live';
-                statusBadge.classList.remove('offline-badge');
                 setReconnectState(false);
             });
 
             player.on('error', () => {
-                statusBadge.textContent = 'Offline';
-                statusBadge.classList.add('offline-badge');
                 console.log('Player error, will retry');
                 scheduleReconnect();
             });
