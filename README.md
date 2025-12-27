@@ -39,6 +39,24 @@ Push to `main` to deploy via GitHub Actions, or run manually:
 ssh -i key.pem ubuntu@<server-ip> "sudo /var/www/nginx-rtmp-module/deploy.sh"
 ```
 
+## Domain (Cloudflare)
+
+Recommended setup:
+
+- `live.cloud9digital.in` (website + HLS): **Proxied** (orange cloud)
+- `ingest.cloud9digital.in` (RTMP ingest): **DNS only** (grey cloud)
+
+OBS settings:
+
+- Server: `rtmp://ingest.cloud9digital.in/live`
+- Stream key: `stream`
+
+Player URL:
+
+- `https://live.cloud9digital.in/`
+
+Note: If you keep everything DNS only, the site will be HTTP unless you install SSL on the server.
+
 ## Oracle Setup (one-time)
 
 ```bash
