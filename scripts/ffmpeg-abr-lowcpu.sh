@@ -5,6 +5,8 @@ STREAM_NAME="${1:-stream}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HLS_DIR="${ROOT_DIR}/temp/hls"
 
+pkill -f "ffmpeg .*live/${STREAM_NAME}" 2>/dev/null || true
+
 mkdir -p "${HLS_DIR}/0" "${HLS_DIR}/1"
 
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_NAME}"
