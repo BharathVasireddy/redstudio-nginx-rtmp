@@ -8,7 +8,6 @@ REPO_DIR="/var/www/nginx-rtmp-module"
 BRANCH="${DEPLOY_BRANCH:-main}"
 NGINX_CONF_PATH="/usr/local/nginx/conf/nginx.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
-NGINX_PID="/usr/local/nginx/logs/nginx.pid"
 FORCE_NGINX_CONF="${FORCE_NGINX_CONF:-0}"
 
 echo "🚀 Deploying Red Studio updates..."
@@ -81,22 +80,18 @@ fi
 
 if [ -x "${NGINX_BIN}" ]; then
     sudo "${NGINX_BIN}" -t
-    PID=""
-    if [ -s "${NGINX_PID}" ]; then
-        PID="$(tr -d '[:space:]' < "${NGINX_PID}")"
-    fi
-    if [ -n "${PID}" ] && [ "${PID}" -eq "${PID}" ] 2>/dev/null && sudo kill -0 "${PID}" 2>/dev/null; then
-        echo "🔄 Reloading NGINX..."
-        sudo "${NGINX_BIN}" -s reload
+    PGREP_BIN="$(command -v pgrep || true)"
+    if [ -n "${PGREP_BIN}" ]; then
+        MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
     else
-        MASTER_PID="$(pgrep -o -f 'nginx: master' || true)"
-        if [ -n "${MASTER_PID}" ]; then
-            echo "🔄 Reloading NGINX (signal)..."
-            sudo kill -HUP "${MASTER_PID}"
-        else
-            echo "🚀 Starting NGINX..."
-            sudo "${NGINX_BIN}"
-        fi
+        MASTER_PID=""
+    fi
+    if [ -n "${MASTER_PID}" ]; then
+        echo "🔄 Reloading NGINX (signal)..."
+        sudo kill -HUP "${MASTER_PID}"
+    else
+        echo "🚀 Starting NGINX..."
+        sudo "${NGINX_BIN}"
     fi
 else
     echo "⚠️ NGINX binary not found; skipping reload."
