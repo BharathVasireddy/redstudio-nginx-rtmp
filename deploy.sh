@@ -45,7 +45,7 @@ if [ "${STASH_CREATED}" = "1" ]; then
 fi
 
 # Ensure FFmpeg scripts are executable
-chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" 2>/dev/null || true
+chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" "${REPO_DIR}/scripts/ffmpeg-single.sh" 2>/dev/null || true
 
 # Ensure runtime directories are writable by the NGINX worker/FFmpeg user
 sudo mkdir -p "${REPO_DIR}/temp/hls" "${REPO_DIR}/logs"
