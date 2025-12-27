@@ -9,10 +9,6 @@ temp/
 *.m3u8
 temp/temp.txt
 
-# Node.js
-node_modules/
-api/node_modules/
-
 # OS files
 .DS_Store
 Thumbs.db
@@ -36,5 +32,3 @@ conf/*.backup
 # Sensitive files (add your actual secrets here)
 # .env
 # api/config.local.json
-api/analytics.json
-api/session.json

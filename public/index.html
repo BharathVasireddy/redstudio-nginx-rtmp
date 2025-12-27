@@ -423,7 +423,7 @@
 
         const statusBadge = document.getElementById('statusBadge');
         const offlineOverlay = document.getElementById('offlineOverlay');
-        let isLive = false;
+        const STREAM_URL = '/hls/stream.m3u8';
         let player = null;
         let isReconnecting = false;
         let lastInitAt = 0;
@@ -460,10 +460,14 @@
 
             player.on('playing', () => {
                 offlineOverlay.classList.add('hidden');
+                statusBadge.textContent = 'Live';
+                statusBadge.classList.remove('offline-badge');
                 setReconnectState(false);
             });
 
             player.on('error', () => {
+                statusBadge.textContent = 'Offline';
+                statusBadge.classList.add('offline-badge');
                 console.log('Player error, will retry');
                 scheduleReconnect();
             });
@@ -500,61 +504,15 @@
             }
 
             lastInitAt = now;
-            const url = await getStreamUrl();
-            if (url) {
-                initPlayer(url);
-            }
+            initPlayer(STREAM_URL);
         }
 
         function scheduleReconnect() {
-            if (!isLive) return;
             setReconnectState(true);
             tryInitStream();
         }
-
-        // Get HLS stream URL with token
-        async function getStreamUrl() {
-            try {
-                const res = await fetch('/api/token/hls?stream=master');
-                const data = await res.json();
-                return data.url;
-            } catch (e) {
-                console.error('Token fetch failed:', e);
-                return null;
-            }
-        }
-
-        // Check stream status and load player
-        async function checkStream() {
-            try {
-                const res = await fetch('/api/stream/status');
-                const data = await res.json();
-
-                if (data.isLive && !isLive) {
-                    isLive = true;
-                    statusBadge.textContent = 'Live';
-                    statusBadge.classList.remove('offline-badge');
-                    await tryInitStream();
-                } else if (data.isLive && isLive) {
-                    if (!player || player.error()) {
-                        await tryInitStream();
-                    }
-                } else if (!data.isLive && isLive) {
-                    isLive = false;
-                    statusBadge.textContent = 'Offline';
-                    statusBadge.classList.add('offline-badge');
-                    offlineOverlay.classList.remove('hidden');
-                    setReconnectState(false);
-                }
-            } catch (e) {
-                console.error('Status check failed:', e);
-                scheduleReconnect();
-            }
-        }
-
-        // Start checking stream status
-        checkStream();
-        setInterval(checkStream, 3000);
+        // Start player
+        tryInitStream();
     </script>
 </body>
 

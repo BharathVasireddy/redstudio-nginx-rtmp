@@ -25,12 +25,6 @@ echo "📦 Installing build dependencies..."
 apt install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev \
     libssl-dev libgd-dev libgeoip-dev git curl unzip
 
-# Install Node.js 20 LTS
-echo ""
-echo "📦 Installing Node.js 20 LTS..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
-
 # Create web directory
 echo ""
 echo "📁 Creating web directory..."
@@ -88,8 +82,7 @@ echo "📁 Creating directories..."
 mkdir -p /var/www/nginx-rtmp-module/temp/hls
 mkdir -p /var/www/nginx-rtmp-module/logs
 chown -R www-data:www-data /var/www/nginx-rtmp-module
-chown -R nobody:nogroup /var/www/nginx-rtmp-module/temp /var/www/nginx-rtmp-module/logs
-chmod -R 775 /var/www/nginx-rtmp-module/temp /var/www/nginx-rtmp-module/logs
+chmod -R 777 /var/www/nginx-rtmp-module/temp /var/www/nginx-rtmp-module/logs
 
 # Copy nginx config
 echo ""
@@ -119,24 +112,10 @@ iptables -I INPUT -p tcp --dport 1935 -j ACCEPT
 apt install -y iptables-persistent
 netfilter-persistent save
 
-# Setup Node.js API
-echo ""
-echo "📦 Setting up Node.js API..."
-cd /var/www/nginx-rtmp-module/api
-npm install --production
-
-# Install API systemd service
-echo ""
-echo "⚙️ Installing API systemd service..."
-cp /var/www/nginx-rtmp-module/nginx-rtmp-api.service /etc/systemd/system/nginx-rtmp-api.service
-systemctl daemon-reload
-systemctl enable nginx-rtmp-api
-
 # Start services
 echo ""
 echo "🚀 Starting services..."
 systemctl start nginx-rtmp
-systemctl start nginx-rtmp-api
 
 # Cleanup
 echo ""
@@ -151,7 +130,6 @@ echo "===================================="
 echo ""
 echo "Services Status:"
 echo "  NGINX: $(systemctl is-active nginx-rtmp)"
-echo "  API:   $(systemctl is-active nginx-rtmp-api)"
 echo ""
 echo "Access your server at:"
 echo "  http://$(curl -s ifconfig.me):8080"
