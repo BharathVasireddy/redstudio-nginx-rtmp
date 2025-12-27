@@ -8,6 +8,7 @@ REPO_DIR="/var/www/nginx-rtmp-module"
 BRANCH="${DEPLOY_BRANCH:-main}"
 NGINX_CONF_PATH="/usr/local/nginx/conf/nginx.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
+NGINX_PID="/usr/local/nginx/logs/nginx.pid"
 FORCE_NGINX_CONF="${FORCE_NGINX_CONF:-0}"
 
 echo "🚀 Deploying Red Studio updates..."
@@ -79,9 +80,14 @@ if [ ! -x "${NGINX_BIN}" ]; then
 fi
 
 if [ -x "${NGINX_BIN}" ]; then
-    echo "🔄 Reloading NGINX..."
     sudo "${NGINX_BIN}" -t
-    sudo "${NGINX_BIN}" -s reload
+    if [ -s "${NGINX_PID}" ] && sudo kill -0 "$(cat "${NGINX_PID}")" 2>/dev/null; then
+        echo "🔄 Reloading NGINX..."
+        sudo "${NGINX_BIN}" -s reload
+    else
+        echo "🚀 Starting NGINX..."
+        sudo "${NGINX_BIN}"
+    fi
 else
     echo "⚠️ NGINX binary not found; skipping reload."
 fi
