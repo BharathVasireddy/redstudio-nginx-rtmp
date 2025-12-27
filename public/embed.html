@@ -61,51 +61,6 @@
             background: var(--primary) !important;
         }
 
-        /* YouTube-style Live Button in Controls */
-        .live-control {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 3px 8px;
-            background: var(--primary);
-            border-radius: 3px;
-            font-family: -apple-system, sans-serif;
-            font-size: 0.6875rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            margin-right: 8px;
-        }
-
-        .live-control.behind {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .live-control .live-dot {
-            width: 5px;
-            height: 5px;
-            background: white;
-            border-radius: 50%;
-            animation: btn-pulse 1.5s infinite;
-        }
-
-        .live-control.behind .live-dot {
-            animation: none;
-            opacity: 0.5;
-        }
-
-        @keyframes btn-pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.4;
-            }
-        }
-
         /* Logo watermark */
         .watermark {
             position: absolute;
@@ -337,60 +292,14 @@
         }
 
         let hls;
-        let liveControlEl = null;
-        let isStreamLive = false;
-
         const player = new Plyr(video, {
-            controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+            controls: ['play', 'current-time', 'mute', 'volume'],
             hideControls: true,
             clickToPlay: true,
             seekTime: 5
         });
 
-        // Add LIVE button to controls
-        player.on('ready', () => {
-            const controls = document.querySelector('.plyr__controls');
-            if (controls && !document.querySelector('.live-control')) {
-                liveControlEl = document.createElement('div');
-                liveControlEl.className = 'live-control';
-                liveControlEl.innerHTML = '<span class="live-dot"></span><span>LIVE</span>';
-                liveControlEl.title = 'Jump to live';
-                liveControlEl.onclick = jumpToLive;
-
-                const playBtn = controls.querySelector('[data-plyr="play"]');
-                if (playBtn) {
-                    playBtn.parentNode.insertBefore(liveControlEl, playBtn.nextSibling);
-                }
-            }
-        });
-
-        // Update live indicator when seeking
-        video.addEventListener('timeupdate', () => {
-            if (!hls || !liveControlEl || !isStreamLive) return;
-
-            const behindLive = video.duration - video.currentTime;
-
-            if (behindLive > 5) {
-                liveControlEl.classList.add('behind');
-                const mins = Math.floor(behindLive / 60);
-                const secs = Math.floor(behindLive % 60);
-                const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `0:${secs.toString().padStart(2, '0')}`;
-                liveControlEl.innerHTML = `<span class="live-dot"></span><span>-${timeStr}</span>`;
-            } else {
-                liveControlEl.classList.remove('behind');
-                liveControlEl.innerHTML = '<span class="live-dot"></span><span>LIVE</span>';
-            }
-        });
-
-        function jumpToLive() {
-            if (video.duration) {
-                video.currentTime = video.duration;
-                video.play().catch(() => { });
-            }
-        }
-
         function setLiveStatus(live) {
-            isStreamLive = live;
             if (live) {
                 liveIndicator.textContent = 'Live';
                 liveIndicator.classList.remove('offline');

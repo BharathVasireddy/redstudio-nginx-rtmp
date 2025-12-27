@@ -132,39 +132,9 @@
             box-shadow: 0 0 0 2px var(--primary-glow);
         }
 
-        /* Live Badge in Player */
+        /* Hide live and progress controls for a minimal live UI */
         .vjs-live-control {
-            display: flex !important;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px !important;
-            background: var(--primary) !important;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-right: 10px;
-        }
-
-        .vjs-live-control::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: white;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.4;
-            }
+            display: none !important;
         }
 
         /* Hide time display and progress bar for live streams */
@@ -429,24 +399,6 @@
                 <div class="stream-meta">
                     <span id="statusBadge" class="live-badge offline-badge">Offline</span>
                 </div>
-                <div class="stream-actions">
-                    <button class="action-btn primary" id="goLiveBtn" onclick="goLive()" disabled>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <circle cx="12" cy="12" r="3" />
-                        </svg>
-                        Go Live
-                    </button>
-                    <button class="action-btn" onclick="toggleFullscreen()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="15 3 21 3 21 9" />
-                            <polyline points="9 21 3 21 3 15" />
-                            <line x1="21" y1="3" x2="14" y2="10" />
-                            <line x1="3" y1="21" x2="10" y2="14" />
-                        </svg>
-                        Fullscreen
-                    </button>
-                </div>
             </div>
         </div>
     </section>
@@ -466,8 +418,6 @@
 
         const statusBadge = document.getElementById('statusBadge');
         const offlineOverlay = document.getElementById('offlineOverlay');
-        const goLiveBtn = document.getElementById('goLiveBtn');
-
         let isLive = false;
         let player = null;
         let isReconnecting = false;
@@ -579,11 +529,8 @@
                     isLive = true;
                     statusBadge.textContent = 'Live';
                     statusBadge.classList.remove('offline-badge');
-                    goLiveBtn.disabled = false;
-
                     await tryInitStream();
                 } else if (data.isLive && isLive) {
-                    goLiveBtn.disabled = false;
                     if (!player || player.error()) {
                         await tryInitStream();
                     }
@@ -592,31 +539,11 @@
                     statusBadge.textContent = 'Offline';
                     statusBadge.classList.add('offline-badge');
                     offlineOverlay.classList.remove('hidden');
-                    goLiveBtn.disabled = true;
                     setReconnectState(false);
                 }
             } catch (e) {
                 console.error('Status check failed:', e);
                 scheduleReconnect();
-            }
-        }
-
-        function toggleFullscreen() {
-            const container = document.querySelector('.player-container');
-            if (!document.fullscreenElement) {
-                container.requestFullscreen().catch(() => { });
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        function goLive() {
-            if (!player || !player.liveTracker) return;
-            try {
-                player.liveTracker.seekToLiveEdge();
-                player.play().catch(() => { });
-            } catch (e) {
-                console.log('Go Live failed:', e);
             }
         }
 
