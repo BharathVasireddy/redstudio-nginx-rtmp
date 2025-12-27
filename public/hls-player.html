@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HLS Player</title>
+    <meta name="theme-color" content="#000000">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-wrap {
+            width: min(960px, 100%);
+            padding: 1.5rem 1rem 2rem;
+        }
+
+        .title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .hint {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 1rem;
+        }
+
+        video {
+            width: 100%;
+            background: #000;
+            border-radius: 12px;
+        }
+
+        .links {
+            margin-top: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .link-button {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            background: #dc2626;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .link-secondary {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .status {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="player-wrap">
+        <div class="title">HLS Player</div>
+        <div class="hint">If the live stream doesn’t start, tap play or try the direct playlist.</div>
+        <video id="hlsPlayer" controls playsinline></video>
+        <div class="links">
+            <a class="link-button" href="/hls/stream.m3u8">Open Direct Playlist</a>
+            <a class="link-button link-secondary" href="/">Back to Live Page</a>
+        </div>
+        <div class="status" id="statusText">Loading stream...</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13"></script>
+    <script>
+        const player = document.getElementById('hlsPlayer');
+        const statusText = document.getElementById('statusText');
+        const sourceUrl = '/hls/stream.m3u8';
+
+        function setStatus(message) {
+            statusText.textContent = message;
+        }
+
+        if (player.canPlayType('application/vnd.apple.mpegurl')) {
+            player.src = sourceUrl;
+            setStatus('Tap play to start the stream.');
+        } else if (window.Hls && Hls.isSupported()) {
+            const hls = new Hls({
+                maxBufferLength: 20,
+                liveSyncDuration: 12
+            });
+            hls.loadSource(sourceUrl);
+            hls.attachMedia(player);
+            hls.on(Hls.Events.ERROR, () => {
+                setStatus('Stream error. Please retry or open the direct playlist.');
+            });
+            setStatus('Tap play to start the stream.');
+        } else {
+            setStatus('HLS is not supported in this browser.');
+        }
+    </script>
+</body>
+</html>

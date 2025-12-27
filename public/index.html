@@ -87,6 +87,30 @@
             display: none !important;
         }
 
+        .mobile-fallback {
+            display: none;
+            padding: 1.25rem 1rem 2rem;
+            background: #0b0b0b;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .mobile-fallback__text {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 0.75rem;
+        }
+
+        .mobile-fallback__button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 999px;
+        }
+
         /* Offline overlay */
         .offline-overlay {
             position: absolute;
@@ -169,6 +193,12 @@
                 padding: 0 12px;
             }
         }
+
+        @media (max-width: 768px) {
+            .mobile-fallback {
+                display: block;
+            }
+        }
     </style>
 </head>
 
@@ -189,6 +219,13 @@
             <div class="offline-text" id="offlineText">Stream Offline</div>
             <div class="offline-hint" id="offlineHint">Waiting for broadcast...</div>
         </div>
+    </div>
+
+    <div class="mobile-fallback">
+        <div class="mobile-fallback__text">
+            Can't see the live stream? Tap below to open the HLS player.
+        </div>
+        <a class="mobile-fallback__button" href="/hls-player.html">Open HLS Player</a>
     </div>
 
     <!-- Scripts -->
