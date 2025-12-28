@@ -74,19 +74,28 @@
             color: var(--text-secondary);
         }
 
-        /* Full-width video container */
+        /* Video container with centered layout */
+        .video-wrapper {
+            width: 100%;
+            background: var(--bg-primary);
+            padding: 1.5rem 1rem;
+        }
+
         .video-container {
             position: relative;
             width: 100%;
-            max-width: 100%;
+            max-width: 1280px;
             margin: 0 auto;
             background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
-        /* Plyr player - full width */
+        /* Plyr player with aspect ratio */
         .plyr {
             width: 100%;
-            height: min(70vh, 720px);
+            aspect-ratio: 16/9;
             background: #000;
         }
 
@@ -94,11 +103,15 @@
             background: #000;
         }
 
-        /* Responsive: limit height on smaller screens */
-        @media (max-width: 1024px) {
-            .plyr {
-                height: auto;
-                aspect-ratio: 16/9;
+        /* Responsive: full width on mobile */
+        @media (max-width: 768px) {
+            .video-wrapper {
+                padding: 0;
+            }
+
+            .video-container {
+                border-radius: 0;
+                box-shadow: none;
             }
         }
 
@@ -199,16 +212,26 @@
             height: 18px;
         }
 
+        .stream-stats-wrapper {
+            width: 100%;
+            background: var(--bg-primary);
+            padding: 0 1rem 1.5rem;
+        }
+
         .stream-stats {
+            max-width: 1280px;
+            margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 2.5rem;
-            padding: 1rem 1.25rem;
+            padding: 1.25rem 1.5rem;
             background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
+            border: 1px solid var(--border);
+            border-radius: 12px;
             text-align: center;
             flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .stat-item {
@@ -234,6 +257,19 @@
         .stat-hint {
             font-size: 0.75rem;
             color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .stream-stats-wrapper {
+                padding: 0 0 1rem;
+            }
+
+            .stream-stats {
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+                box-shadow: none;
+            }
         }
 
         /* Offline overlay */
@@ -510,25 +546,13 @@
             </div>
         </div>
 
+        <div class="video-wrapper">
         <div class="video-container">
         <!-- Video.js Player -->
         <video id="player" controls playsinline preload="auto"></video>
 
         <div class="tap-overlay hidden" id="tapOverlay">
             <button class="tap-button" type="button">Play Live</button>
-        </div>
-
-        <div class="stream-stats" id="streamStats">
-            <div class="stat-item">
-                <div class="stat-label">Viewers</div>
-                <div class="stat-value" id="viewerCount">—</div>
-                <div class="stat-hint" id="viewerHint">Last 30s</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Live Since</div>
-                <div class="stat-value" id="liveSince">—</div>
-                <div class="stat-hint" id="liveSinceHint">Local time</div>
-            </div>
         </div>
 
         <div class="audio-prompt" id="audioPrompt">
@@ -557,6 +581,22 @@
             </div>
             <div class="offline-text" id="offlineText">Stream Offline</div>
             <div class="offline-hint" id="offlineHint">Waiting for broadcast. Tap the video to retry.</div>
+        </div>
+        </div>
+
+        <div class="stream-stats-wrapper">
+        <div class="stream-stats" id="streamStats">
+            <div class="stat-item">
+                <div class="stat-label">Viewers</div>
+                <div class="stat-value" id="viewerCount">—</div>
+                <div class="stat-hint" id="viewerHint">Last 30s</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Live Since</div>
+                <div class="stat-value" id="liveSince">—</div>
+                <div class="stat-hint" id="liveSinceHint">Local time</div>
+            </div>
+        </div>
         </div>
         </div>
 
