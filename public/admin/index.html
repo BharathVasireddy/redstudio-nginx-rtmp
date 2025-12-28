@@ -130,6 +130,7 @@
             align-items: center;
             gap: 0.6rem;
             font-size: 0.8rem;
+            margin-bottom: 0.35rem;
         }
 
         .toggle-switch {
@@ -187,8 +188,13 @@
         .remove-btn {
             border: 0;
             background: transparent;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.5);
             cursor: pointer;
+            padding: 0.2rem 0;
+        }
+
+        .remove-btn:hover {
+            color: rgba(239, 68, 68, 0.9);
         }
 
         .hint {
@@ -330,8 +336,8 @@
                                 <span class="slider"></span>
                             </label>
                             <span class="toggle-label">Enabled</span>
+                            <button class="remove-btn" data-index="${index}" data-name="${dest.name || 'this destination'}">Delete</button>
                         </div>
-                        <button class="remove-btn" data-index="${index}">Remove</button>
                     </div>
                 `;
                 listEl.appendChild(row);
@@ -354,6 +360,10 @@
 
         function removeItem(event) {
             if (!event.target.classList.contains('remove-btn')) {
+                return;
+            }
+            const label = event.target.dataset.name || 'this destination';
+            if (!confirm(`Delete ${label}?`)) {
                 return;
             }
             const index = Number(event.target.dataset.index);
