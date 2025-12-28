@@ -190,6 +190,30 @@
             cursor: pointer;
         }
 
+        .audio-prompt {
+            position: absolute;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 12;
+            display: none;
+        }
+
+        .audio-prompt.show {
+            display: block;
+        }
+
+        .audio-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.65rem 1.2rem;
+            background: rgba(15, 15, 15, 0.9);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            cursor: pointer;
+        }
+
         .status-toast {
             position: fixed;
             left: 50%;
@@ -312,6 +336,10 @@
             <button class="tap-button" type="button">Tap to Play</button>
         </div>
 
+        <div class="audio-prompt" id="audioPrompt">
+            <button class="audio-button" type="button">Tap for Sound</button>
+        </div>
+
         <!-- Offline Overlay -->
         <div class="offline-overlay" id="offlineOverlay">
             <div class="offline-icon" id="offlineIcon">
@@ -344,6 +372,8 @@
         let lastInitAt = 0;
         let suspendReconnectUntil = 0;
         let toastTimer = null;
+        const STORAGE_MUTED = 'rs_muted';
+        const STORAGE_VOLUME = 'rs_volume';
         const REINIT_COOLDOWN_MS = 3000;
         const STREAM_URL = '/hls/stream.m3u8';
 
@@ -352,6 +382,7 @@
         const offlineHint = document.getElementById('offlineHint');
         const offlineIcon = document.getElementById('offlineIcon');
         const tapOverlay = document.getElementById('tapOverlay');
+        const audioPrompt = document.getElementById('audioPrompt');
         const statusToast = document.getElementById('statusToast');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
@@ -391,6 +422,7 @@
                 offlineOverlay.classList.add('hidden');
                 setReconnectState(false);
                 hideTapOverlay();
+                applyPreferredAudio();
                 if (wasReconnecting) {
                     showToast('Reconnected');
                     wasReconnecting = false;
@@ -413,10 +445,15 @@
 
             player.on('loadedmetadata', () => {
                 setReconnectState(false);
+                applyPreferredAudio();
             });
 
             player.on('pause', () => {
                 showTapOverlay();
+            });
+
+            player.on('volumechange', () => {
+                storeAudioPrefs();
             });
 
             player.on('fullscreenchange', () => {
@@ -487,6 +524,63 @@
             }
         }
 
+        function storeAudioPrefs() {
+            if (!player) {
+                return;
+            }
+            const muted = player.muted();
+            const volume = player.volume();
+            try {
+                localStorage.setItem(STORAGE_MUTED, String(muted));
+                localStorage.setItem(STORAGE_VOLUME, String(volume));
+            } catch (err) {}
+            toggleAudioPrompt(muted);
+        }
+
+        function readAudioPrefs() {
+            let muted = true;
+            let volume = 1;
+            try {
+                const storedMuted = localStorage.getItem(STORAGE_MUTED);
+                const storedVolume = localStorage.getItem(STORAGE_VOLUME);
+                if (storedMuted === 'false') {
+                    muted = false;
+                }
+                if (storedVolume !== null) {
+                    const parsed = Number(storedVolume);
+                    if (!Number.isNaN(parsed)) {
+                        volume = Math.min(Math.max(parsed, 0), 1);
+                    }
+                }
+            } catch (err) {}
+            return { muted, volume };
+        }
+
+        function applyPreferredAudio() {
+            if (!player) {
+                return;
+            }
+            const prefs = readAudioPrefs();
+            if (!prefs.muted) {
+                player.muted(false);
+                player.volume(prefs.volume);
+            }
+            toggleAudioPrompt(player.muted());
+        }
+
+        function toggleAudioPrompt(show) {
+            if (!audioPrompt) {
+                return;
+            }
+            const prefs = readAudioPrefs();
+            const shouldShow = show && (isMobile || !prefs.muted);
+            if (shouldShow) {
+                audioPrompt.classList.add('show');
+            } else {
+                audioPrompt.classList.remove('show');
+            }
+        }
+
         function showToast(message) {
             if (!statusToast) {
                 return;
@@ -543,6 +637,20 @@
             tapOverlay.addEventListener('click', () => {
                 hideTapOverlay();
                 tryInitStream();
+                attemptPlay();
+            });
+        }
+
+        if (audioPrompt) {
+            audioPrompt.addEventListener('click', () => {
+                if (!player) {
+                    return;
+                }
+                player.muted(false);
+                const prefs = readAudioPrefs();
+                player.volume(prefs.volume);
+                toggleAudioPrompt(false);
+                storeAudioPrefs();
                 attemptPlay();
             });
         }
