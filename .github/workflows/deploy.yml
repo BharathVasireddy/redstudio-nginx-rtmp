@@ -12,22 +12,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - host: ${{ secrets.ORACLE_HOST }}
-            username: ${{ secrets.ORACLE_USER }}
-            key: ${{ secrets.ORACLE_SSH_KEY }}
-            passphrase: ${{ secrets.ORACLE_SSH_KEY_PASSPHRASE }}
-          - host: ${{ secrets.ORACLE_HOST_2 }}
-            username: ${{ secrets.ORACLE_USER_2 }}
-            key: ${{ secrets.ORACLE_SSH_KEY_2 }}
-            passphrase: ${{ secrets.ORACLE_SSH_KEY_PASSPHRASE_2 }}
+          - name: primary
+            host_secret: ORACLE_HOST
+            user_secret: ORACLE_USER
+            key_secret: ORACLE_SSH_KEY
+            passphrase_secret: ORACLE_SSH_KEY_PASSPHRASE
+          - name: secondary
+            host_secret: ORACLE_HOST_2
+            user_secret: ORACLE_USER_2
+            key_secret: ORACLE_SSH_KEY_2
+            passphrase_secret: ORACLE_SSH_KEY_PASSPHRASE_2
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ matrix.host }}
-          username: ${{ matrix.username }}
-          key: ${{ matrix.key }}
-          passphrase: ${{ matrix.passphrase }}
+          host: ${{ secrets[matrix.host_secret] }}
+          username: ${{ secrets[matrix.user_secret] }}
+          key: ${{ secrets[matrix.key_secret] }}
+          passphrase: ${{ secrets[matrix.passphrase_secret] }}
           envs: ADMIN_USER,ADMIN_PASSWORD
           script: |
             cd /var/www/nginx-rtmp-module
