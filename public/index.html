@@ -120,7 +120,10 @@
         .video-js .vjs-remaining-time,
         .video-js .vjs-current-time,
         .video-js .vjs-duration,
-        .video-js .vjs-live-control {
+        .video-js .vjs-live-control,
+        .video-js .vjs-live-display,
+        .video-js .vjs-control-bar .vjs-live-control,
+        .video-js .vjs-control-bar .vjs-live-display {
             display: none !important;
         }
 
@@ -472,7 +475,7 @@
             const useNativeHls = videojs.browser.IS_IOS || videojs.browser.IS_ANY_SAFARI;
 
             player = videojs('player', {
-                liveui: true,
+                liveui: false,
                 liveTracker: {
                     trackingThreshold: 0,
                     liveTolerance: 15
