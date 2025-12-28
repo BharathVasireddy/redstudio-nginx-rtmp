@@ -35,6 +35,60 @@ function Get-PythonCmd {
     return $null
 }
 
+function Install-Python {
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Log "Installing Python with winget..."
+        try {
+            winget install -e --id Python.Python.3 --accept-source-agreements --accept-package-agreements
+            return $true
+        } catch {
+            Write-Warn "winget install failed."
+        }
+    }
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        Write-Log "Installing Python with chocolatey..."
+        try {
+            choco install -y python
+            return $true
+        } catch {
+            Write-Warn "choco install failed."
+        }
+    }
+    $version = "3.12.6"
+    $is64 = [Environment]::Is64BitOperatingSystem
+    $suffix = ""
+    if ($is64) { $suffix = "-amd64" }
+    $installer = Join-Path $env:TEMP ("python-" + $version + $suffix + ".exe")
+    $url = "https://www.python.org/ftp/python/$version/python-$version" + $suffix + ".exe"
+    Write-Log "Downloading Python installer..."
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $installer -UseBasicParsing
+        Write-Log "Running Python installer..."
+        $proc = Start-Process -FilePath $installer -ArgumentList "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0" -Wait -PassThru
+        if ($proc.ExitCode -ne 0) {
+            Write-Warn "Python installer exited with code $($proc.ExitCode)."
+            return $false
+        }
+        Remove-Item $installer -Force -ErrorAction SilentlyContinue
+        return $true
+    } catch {
+        Write-Warn "Failed to download/install Python."
+    }
+    return $false
+}
+
+function Ensure-Python {
+    $py = Get-PythonCmd
+    if ($py) { return $py }
+    Write-Warn "python not found. Attempting automatic install..."
+    if (Install-Python) {
+        Start-Sleep -Seconds 2
+        $py = Get-PythonCmd
+        if ($py) { return $py }
+    }
+    return $null
+}
+
 function Ensure-Dirs {
     $paths = @(
         (Join-Path $Root "data"),
@@ -57,7 +111,7 @@ function Ensure-RestreamConfig {
         Copy-Item $restreamDefault $restreamJson -Force
     }
 
-    $py = Get-PythonCmd
+    $py = Ensure-Python
     if ($py) {
         & $py.Exe @($py.Args + @((Join-Path $Root "scripts\restream-generate.py"), $restreamJson, $restreamConf)) | Out-Null
     } else {
@@ -208,7 +262,7 @@ function Start-AdminApi {
         Write-Log "Admin API start skipped (--NoAdmin)."
         return
     }
-    $py = Get-PythonCmd
+    $py = Ensure-Python
     if (-not $py) {
         Write-Warn "python not found; admin API will not start. Install Python from python.org and re-run."
         return

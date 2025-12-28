@@ -258,7 +258,7 @@ If PowerShell blocks scripts, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup-local.ps1 -ForceStop
 ```
 
-If the admin UI does not load, install Python 3 from https://www.python.org/downloads/ and disable the Windows Store "App execution aliases" for python.
+If the admin UI does not load, the script will try to install Python via `winget`/`choco`. If those are missing, it will download the official installer via PowerShell. If it still fails, install Python 3 from https://www.python.org/downloads/ and disable the Windows Store "App execution aliases" for python.
 
 Or double-click:
 
