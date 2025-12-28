@@ -9,6 +9,13 @@ BRANCH="${DEPLOY_BRANCH:-main}"
 NGINX_CONF_PATH="/usr/local/nginx/conf/nginx.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
 FORCE_NGINX_CONF="${FORCE_NGINX_CONF:-0}"
+DATA_DIR="${REPO_DIR}/data"
+ADMIN_USER="${ADMIN_USER:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+ADMIN_HTPASSWD="${DATA_DIR}/admin.htpasswd"
+ADMIN_CREDS="${DATA_DIR}/admin.credentials"
+RESTREAM_JSON="${DATA_DIR}/restream.json"
+RESTREAM_CONF="${DATA_DIR}/restream.conf"
 
 echo "🚀 Deploying Red Studio updates..."
 
@@ -43,7 +50,30 @@ fi
 # Ensure scripts are executable (kept for optional use)
 chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" \
   "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" \
+  "${REPO_DIR}/scripts/restream-apply.sh" \
+  "${REPO_DIR}/scripts/restream-generate.py" \
+  "${REPO_DIR}/scripts/admin-api.py" \
   "${REPO_DIR}/scripts/hls-viewers.sh" 2>/dev/null || true
+
+# Ensure data directory exists and defaults are present
+mkdir -p "${DATA_DIR}"
+if [ ! -f "${RESTREAM_JSON}" ]; then
+    cp "${REPO_DIR}/config/restream.default.json" "${RESTREAM_JSON}"
+fi
+if [ ! -f "${RESTREAM_CONF}" ]; then
+    python3 "${REPO_DIR}/scripts/restream-generate.py" "${RESTREAM_JSON}" "${RESTREAM_CONF}"
+fi
+
+# Create admin credentials if missing or secrets provided
+if [ -n "${ADMIN_PASSWORD}" ] || [ ! -f "${ADMIN_HTPASSWD}" ]; then
+    if [ -z "${ADMIN_PASSWORD}" ]; then
+        ADMIN_PASSWORD="$(openssl rand -hex 8)"
+        printf "user=%s\npassword=%s\n" "${ADMIN_USER}" "${ADMIN_PASSWORD}" > "${ADMIN_CREDS}"
+    fi
+    HASH="$(openssl passwd -apr1 "${ADMIN_PASSWORD}")"
+    printf "%s:%s\n" "${ADMIN_USER}" "${HASH}" | sudo tee "${ADMIN_HTPASSWD}" >/dev/null
+    sudo chmod 640 "${ADMIN_HTPASSWD}"
+fi
 
 # Ensure runtime directories are writable by NGINX
 sudo mkdir -p "${REPO_DIR}/temp/hls" "${REPO_DIR}/logs"
@@ -69,8 +99,10 @@ fi
 if command -v systemctl >/dev/null 2>&1; then
     sudo cp "${REPO_DIR}/scripts/hls-viewers.service" /etc/systemd/system/hls-viewers.service
     sudo cp "${REPO_DIR}/scripts/hls-viewers.timer" /etc/systemd/system/hls-viewers.timer
+    sudo cp "${REPO_DIR}/scripts/redstudio-admin.service" /etc/systemd/system/redstudio-admin.service
     sudo systemctl daemon-reload
     sudo systemctl enable --now hls-viewers.timer >/dev/null 2>&1 || true
+    sudo systemctl enable --now redstudio-admin.service >/dev/null 2>&1 || true
 fi
 
 # Reload NGINX

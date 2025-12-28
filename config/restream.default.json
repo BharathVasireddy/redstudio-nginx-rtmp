@@ -1,0 +1,32 @@
+{
+  "destinations": [
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "enabled": false,
+      "rtmp_url": "rtmp://a.rtmp.youtube.com/live2",
+      "stream_key": ""
+    },
+    {
+      "id": "facebook",
+      "name": "Facebook",
+      "enabled": false,
+      "rtmp_url": "rtmp://live-api-s.facebook.com:80/rtmp",
+      "stream_key": ""
+    },
+    {
+      "id": "twitch",
+      "name": "Twitch",
+      "enabled": false,
+      "rtmp_url": "rtmp://live.twitch.tv/app",
+      "stream_key": ""
+    },
+    {
+      "id": "custom",
+      "name": "Custom",
+      "enabled": false,
+      "rtmp_url": "rtmp://",
+      "stream_key": ""
+    }
+  ]
+}

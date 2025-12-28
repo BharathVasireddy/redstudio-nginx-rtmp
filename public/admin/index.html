@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Studio Admin</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+        }
+
+        .header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0f0f0f;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+        }
+
+        .logo-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            background: #dc2626;
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.7);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.6rem 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background: #111;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 0.75rem;
+        }
+
+        .row:last-child {
+            margin-bottom: 0;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .field label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .field input {
+            background: #0c0c0c;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.55rem 0.7rem;
+            color: #fff;
+            font-size: 0.85rem;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .toggle input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .remove-btn {
+            border: 0;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 0.5rem;
+        }
+
+        .status {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 860px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="logo-dot"></span>
+            Red Studio Admin
+        </div>
+        <div class="actions">
+            <button class="btn btn-secondary" id="saveBtn">Save</button>
+            <button class="btn btn-primary" id="applyBtn">Save & Apply</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div class="card-title">Multistream Destinations</div>
+            <div id="list"></div>
+            <button class="btn btn-secondary" id="addBtn">Add Platform</button>
+            <div class="hint">
+                Enter the platform RTMP ingest URL and stream key. Toggle to enable/disable.
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+    </main>
+
+    <script>
+        const apiBase = '/admin/api';
+        const listEl = document.getElementById('list');
+        const statusEl = document.getElementById('status');
+        const addBtn = document.getElementById('addBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const applyBtn = document.getElementById('applyBtn');
+
+        let state = { destinations: [] };
+
+        function render() {
+            listEl.innerHTML = '';
+            state.destinations.forEach((dest, index) => {
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.innerHTML = `
+                    <div class="field">
+                        <label>Platform Name</label>
+                        <input data-index="${index}" data-field="name" value="${dest.name || ''}">
+                    </div>
+                    <div class="field">
+                        <label>RTMP URL</label>
+                        <input data-index="${index}" data-field="rtmp_url" value="${dest.rtmp_url || ''}">
+                    </div>
+                    <div class="field">
+                        <label>Stream Key</label>
+                        <input data-index="${index}" data-field="stream_key" value="${dest.stream_key || ''}">
+                    </div>
+                    <div>
+                        <label class="toggle">
+                            <input type="checkbox" data-index="${index}" data-field="enabled" ${dest.enabled ? 'checked' : ''}>
+                            Enabled
+                        </label>
+                        <button class="remove-btn" data-index="${index}">Remove</button>
+                    </div>
+                `;
+                listEl.appendChild(row);
+            });
+        }
+
+        function updateFromInputs(event) {
+            const target = event.target;
+            const index = Number(target.dataset.index);
+            const field = target.dataset.field;
+            if (Number.isNaN(index) || !field) {
+                return;
+            }
+            if (field === 'enabled') {
+                state.destinations[index][field] = target.checked;
+                return;
+            }
+            state.destinations[index][field] = target.value;
+        }
+
+        function removeItem(event) {
+            if (!event.target.classList.contains('remove-btn')) {
+                return;
+            }
+            const index = Number(event.target.dataset.index);
+            state.destinations.splice(index, 1);
+            render();
+        }
+
+        async function loadConfig() {
+            const res = await fetch(`${apiBase}/restream`);
+            state = await res.json();
+            if (!state.destinations) {
+                state.destinations = [];
+            }
+            render();
+        }
+
+        async function saveConfig(apply) {
+            statusEl.textContent = 'Saving...';
+            const res = await fetch(`${apiBase}/restream`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(state)
+            });
+            if (!res.ok) {
+                statusEl.textContent = 'Save failed.';
+                return;
+            }
+            if (apply) {
+                statusEl.textContent = 'Applying...';
+                const applyRes = await fetch(`${apiBase}/restream/apply`, { method: 'POST' });
+                if (!applyRes.ok) {
+                    statusEl.textContent = 'Apply failed.';
+                    return;
+                }
+                statusEl.textContent = 'Saved and applied.';
+                return;
+            }
+            statusEl.textContent = 'Saved.';
+        }
+
+        addBtn.addEventListener('click', () => {
+            state.destinations.push({
+                id: `custom-${Date.now()}`,
+                name: 'Custom',
+                enabled: false,
+                rtmp_url: 'rtmp://',
+                stream_key: ''
+            });
+            render();
+        });
+
+        saveBtn.addEventListener('click', () => saveConfig(false));
+        applyBtn.addEventListener('click', () => saveConfig(true));
+        listEl.addEventListener('input', updateFromInputs);
+        listEl.addEventListener('change', updateFromInputs);
+        listEl.addEventListener('click', removeItem);
+
+        loadConfig().catch(() => {
+            statusEl.textContent = 'Failed to load config.';
+        });
+    </script>
+</body>
+</html>

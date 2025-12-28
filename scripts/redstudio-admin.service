@@ -1,0 +1,16 @@
+[Unit]
+Description=Red Studio Admin API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/var/www/nginx-rtmp-module
+Environment=ADMIN_API_HOST=127.0.0.1
+Environment=ADMIN_API_PORT=9090
+ExecStart=/usr/bin/python3 /var/www/nginx-rtmp-module/scripts/admin-api.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

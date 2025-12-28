@@ -24,6 +24,12 @@ desktop.ini
 # Generated viewer stats
 public/hls-viewers.json
 
+# Admin data (server-side)
+data/restream.json
+data/restream.conf
+data/admin.htpasswd
+data/admin.credentials
+
 # Local config backups
 *.backup
 conf/*.backup

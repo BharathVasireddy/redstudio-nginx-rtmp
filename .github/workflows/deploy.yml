@@ -16,6 +16,10 @@ jobs:
           username: ${{ secrets.ORACLE_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           passphrase: ${{ secrets.ORACLE_SSH_KEY_PASSPHRASE }}
+          envs: ADMIN_USER,ADMIN_PASSWORD
           script: |
             cd /var/www/nginx-rtmp-module
             bash ./deploy.sh
+        env:
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}

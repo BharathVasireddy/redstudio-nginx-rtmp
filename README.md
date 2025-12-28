@@ -39,6 +39,13 @@ Push to `main` to deploy via GitHub Actions, or run manually:
 ssh -i key.pem ubuntu@<server-ip> "sudo /var/www/nginx-rtmp-module/deploy.sh"
 ```
 
+## Multistream Admin
+
+- Admin UI: `https://live.cloud9digital.in/admin/`
+- Configure destinations, then Save & Apply to restream.
+- Credentials are stored on the server at `data/admin.credentials` (created on first deploy).
+- Optional: set GitHub secrets `ADMIN_USER` and `ADMIN_PASSWORD` to override.
+
 ## Domain (Cloudflare)
 
 Recommended setup:
