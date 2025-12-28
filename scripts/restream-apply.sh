@@ -18,8 +18,21 @@ if [ ! -x "${NGINX_BIN}" ]; then
 fi
 
 if [ -x "${NGINX_BIN}" ]; then
-    sudo "${NGINX_BIN}" -t
-    sudo "${NGINX_BIN}" -s reload
+    if [ "$(id -u)" -eq 0 ]; then
+        "${NGINX_BIN}" -t
+        "${NGINX_BIN}" -s reload
+    elif command -v sudo >/dev/null 2>&1; then
+        if sudo -n true 2>/dev/null; then
+            sudo -n "${NGINX_BIN}" -t
+            sudo -n "${NGINX_BIN}" -s reload
+        else
+            echo "sudo permissions missing for nginx reload. Run deploy to install sudoers." >&2
+            exit 1
+        fi
+    else
+        echo "nginx reload requires root or sudo." >&2
+        exit 1
+    fi
 else
     echo "NGINX binary not found. Skipping reload."
 fi

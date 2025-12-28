@@ -106,6 +106,17 @@ if command -v systemctl >/dev/null 2>&1; then
     sudo systemctl enable --now redstudio-admin.service >/dev/null 2>&1 || true
 fi
 
+# Allow admin API to reload NGINX without prompting for sudo.
+SUDOERS_FILE="/etc/sudoers.d/redstudio-nginx"
+NGINX_SUDO_BIN="${NGINX_BIN}"
+if [ ! -x "${NGINX_SUDO_BIN}" ]; then
+    NGINX_SUDO_BIN="$(command -v nginx || true)"
+fi
+if [ -n "${NGINX_SUDO_BIN}" ] && command -v sudo >/dev/null 2>&1; then
+    echo "$(id -un) ALL=(root) NOPASSWD: ${NGINX_SUDO_BIN}" | sudo tee "${SUDOERS_FILE}" >/dev/null
+    sudo chmod 440 "${SUDOERS_FILE}"
+fi
+
 # Reload NGINX
 if [ ! -x "${NGINX_BIN}" ]; then
     NGINX_BIN="$(command -v nginx || true)"
