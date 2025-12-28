@@ -75,3 +75,16 @@ sudo ./setup-oracle.sh
 
 - HLS is generated directly by NGINX (single bitrate = what you send from OBS).
 - Open ports `1935`, `80`, and `8080` in Oracle Cloud.
+
+## Troubleshooting
+
+- OBS can’t connect:
+  - Make sure the server URL is `rtmp://ingest.<your-domain>/ingest` (not `/live`).
+  - Ensure the stream key matches the **Ingest Settings** in `/admin`.
+  - Confirm Cloudflare for `ingest.*` is **DNS only** (grey cloud).
+  - Check Oracle firewall allows port `1935`.
+- Stream shows on site but not on YouTube:
+  - Toggle YouTube on in `/admin`, then **Save & Apply**.
+  - Wait 30–60 seconds for YouTube to show “Receiving.”
+- `/stat` shows 0 clients:
+  - Make sure nginx is running with `worker_processes 1` (default in this repo).
