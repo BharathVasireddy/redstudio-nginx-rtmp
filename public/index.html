@@ -76,12 +76,14 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+            min-height: 400px;
         }
 
         /* Plyr player fits video size */
         .plyr {
             width: 100%;
             max-height: 65vh;
+            min-height: 400px;
             background: #000;
         }
 
@@ -89,6 +91,8 @@
             width: 100%;
             height: auto;
             display: block;
+            min-height: 400px;
+            object-fit: contain;
         }
 
         .plyr__video-wrapper {
@@ -104,10 +108,16 @@
             .video-container {
                 border-radius: 0;
                 box-shadow: none;
+                min-height: 300px;
             }
 
             .plyr {
                 max-height: none;
+                min-height: 300px;
+            }
+
+            .plyr video {
+                min-height: 300px;
             }
         }
 
