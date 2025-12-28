@@ -22,6 +22,13 @@
       "stream_key": ""
     },
     {
+      "id": "instagram",
+      "name": "Instagram",
+      "enabled": false,
+      "rtmp_url": "rtmps://live-upload.instagram.com:443/rtmp/",
+      "stream_key": ""
+    },
+    {
       "id": "custom",
       "name": "Custom",
       "enabled": false,

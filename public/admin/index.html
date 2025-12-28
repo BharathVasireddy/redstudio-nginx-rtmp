@@ -178,7 +178,7 @@
             <div id="list"></div>
             <button class="btn btn-secondary" id="addBtn">Add Platform</button>
             <div class="hint">
-                Enter the platform RTMP ingest URL and stream key. Toggle to enable/disable.
+                Enter the platform ingest URL and stream key. If a platform gives you a different URL, replace it.
             </div>
             <div class="status" id="status"></div>
         </div>
@@ -192,7 +192,64 @@
         const saveBtn = document.getElementById('saveBtn');
         const applyBtn = document.getElementById('applyBtn');
 
+        const defaultDestinations = [
+            {
+                id: 'youtube',
+                name: 'YouTube',
+                enabled: false,
+                rtmp_url: 'rtmp://a.rtmp.youtube.com/live2',
+                stream_key: ''
+            },
+            {
+                id: 'facebook',
+                name: 'Facebook',
+                enabled: false,
+                rtmp_url: 'rtmp://live-api-s.facebook.com:80/rtmp',
+                stream_key: ''
+            },
+            {
+                id: 'twitch',
+                name: 'Twitch',
+                enabled: false,
+                rtmp_url: 'rtmp://live.twitch.tv/app',
+                stream_key: ''
+            },
+            {
+                id: 'instagram',
+                name: 'Instagram',
+                enabled: false,
+                rtmp_url: 'rtmps://live-upload.instagram.com:443/rtmp/',
+                stream_key: ''
+            },
+            {
+                id: 'custom',
+                name: 'Custom',
+                enabled: false,
+                rtmp_url: 'rtmp://',
+                stream_key: ''
+            }
+        ];
+
         let state = { destinations: [] };
+
+        function mergeDefaults(destinations) {
+            const merged = [];
+            const seen = new Set();
+            if (Array.isArray(destinations)) {
+                destinations.forEach((dest) => {
+                    merged.push(dest);
+                    if (dest && dest.id) {
+                        seen.add(dest.id);
+                    }
+                });
+            }
+            defaultDestinations.forEach((dest) => {
+                if (!seen.has(dest.id)) {
+                    merged.push({ ...dest });
+                }
+            });
+            return merged;
+        }
 
         function render() {
             listEl.innerHTML = '';
@@ -250,9 +307,7 @@
         async function loadConfig() {
             const res = await fetch(`${apiBase}/restream`);
             state = await res.json();
-            if (!state.destinations) {
-                state.destinations = [];
-            }
+            state.destinations = mergeDefaults(state.destinations);
             render();
         }
 
