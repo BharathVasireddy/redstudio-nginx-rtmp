@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 import urllib.request
+from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -20,6 +21,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
 CONFIG_PATH = DATA_DIR / "restream.json"
 DEFAULT_CONFIG = ROOT_DIR / "config" / "restream.default.json"
+STREAM_STATUS_PATH = DATA_DIR / "stream-status.json"
 IS_WINDOWS = os.name == "nt"
 APPLY_SCRIPT = ROOT_DIR / "scripts" / ("restream-apply.ps1" if IS_WINDOWS else "restream-apply.sh")
 STREAM_APP = os.environ.get("STREAM_APP", "live")
@@ -37,6 +39,54 @@ NET_SAMPLE: Optional[Tuple[int, int, float]] = None
 
 def now_ts() -> int:
     return int(time.time())
+
+
+def iso_from_ts(ts: int) -> str:
+    return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+
+def load_stream_status() -> dict:
+    if STREAM_STATUS_PATH.exists():
+        try:
+            return json.loads(STREAM_STATUS_PATH.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            pass
+    return {
+        "active": False,
+        "started_at": None,
+        "started_at_epoch": None,
+        "ended_at": None,
+        "ended_at_epoch": None,
+        "updated_at": None,
+        "updated_at_epoch": None,
+    }
+
+
+def write_stream_status(active: bool, started_at: Optional[int] = None, ended_at: Optional[int] = None) -> None:
+    status = load_stream_status()
+    now = now_ts()
+    status["active"] = active
+    status["updated_at_epoch"] = now
+    status["updated_at"] = iso_from_ts(now)
+
+    if started_at is not None:
+        status["started_at_epoch"] = started_at
+        status["started_at"] = iso_from_ts(started_at)
+        status["ended_at_epoch"] = None
+        status["ended_at"] = None
+
+    if ended_at is not None:
+        status["ended_at_epoch"] = ended_at
+        status["ended_at"] = iso_from_ts(ended_at)
+
+    if active:
+        status["ended_at_epoch"] = None
+        status["ended_at"] = None
+
+    STREAM_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = STREAM_STATUS_PATH.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(status), encoding="utf-8")
+    tmp_path.replace(STREAM_STATUS_PATH)
 
 
 def sanitize_destination(dest: dict) -> dict:
@@ -64,6 +114,10 @@ def load_config() -> dict:
     if "ingest_key" not in payload:
         payload["ingest_key"] = ""
     return payload
+
+
+if not STREAM_STATUS_PATH.exists():
+    write_stream_status(False)
 
 
 def save_config(payload: dict) -> None:
@@ -399,12 +453,18 @@ class Handler(BaseHTTPRequestHandler):
             key = str(key).strip()
             stored = load_ingest_key()
             if not stored:
+                write_stream_status(True, started_at=now_ts())
                 self._send_json({"status": "ok"})
                 return
             if key == stored:
+                write_stream_status(True, started_at=now_ts())
                 self._send_json({"status": "ok"})
                 return
             self._send_json({"error": "forbidden"}, status=403)
+            return
+        if parsed.path == "/api/publish_done":
+            write_stream_status(False, ended_at=now_ts())
+            self._send_json({"status": "ok"})
             return
         if parsed.path == "/api/restream/apply":
             try:

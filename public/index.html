@@ -143,6 +143,43 @@
             text-align: center;
         }
 
+        .stream-stats {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2.5rem;
+            padding: 1rem 1.25rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            text-align: center;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 140px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
         .mobile-fallback__text {
             font-size: 0.95rem;
             color: rgba(255, 255, 255, 0.75);
@@ -383,6 +420,14 @@
                 height: 48px;
                 padding: 0 12px;
             }
+
+            .stream-stats {
+                gap: 1.5rem;
+            }
+
+            .stat-item {
+                min-width: 120px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -414,6 +459,19 @@
 
         <div class="tap-overlay hidden" id="tapOverlay">
             <button class="tap-button" type="button">Play Live</button>
+        </div>
+
+        <div class="stream-stats" id="streamStats">
+            <div class="stat-item">
+                <div class="stat-label">Viewers</div>
+                <div class="stat-value" id="viewerCount">—</div>
+                <div class="stat-hint" id="viewerHint">Last 30s</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Live Since</div>
+                <div class="stat-value" id="liveSince">—</div>
+                <div class="stat-hint" id="liveSinceHint">Local time</div>
+            </div>
         </div>
 
         <div class="audio-prompt" id="audioPrompt">
@@ -480,7 +538,12 @@
         const bufferingOverlay = document.getElementById('bufferingOverlay');
         const liveBadge = document.getElementById('liveBadge');
         const statusToast = document.getElementById('statusToast');
+        const viewerCountEl = document.getElementById('viewerCount');
+        const viewerHintEl = document.getElementById('viewerHint');
+        const liveSinceEl = document.getElementById('liveSince');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const VIEWER_URL = '/hls-viewers.json';
+        const STATUS_URL = '/stream-status.json';
 
         // Initialize Video.js player
         function initPlayer(url) {
@@ -736,9 +799,67 @@
             }, 2000);
         }
 
+        function formatStartTime(value) {
+            if (!value) {
+                return '—';
+            }
+            let date;
+            if (typeof value === 'number') {
+                date = new Date(value * 1000);
+            } else {
+                date = new Date(value);
+            }
+            if (Number.isNaN(date.getTime())) {
+                return '—';
+            }
+            return new Intl.DateTimeFormat(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+                day: '2-digit',
+                month: 'short'
+            }).format(date);
+        }
+
+        async function updateStats() {
+            const viewerReq = fetch(VIEWER_URL, { cache: 'no-store' });
+            const statusReq = fetch(STATUS_URL, { cache: 'no-store' });
+
+            const [viewerRes, statusRes] = await Promise.allSettled([viewerReq, statusReq]);
+
+            if (viewerRes.status === 'fulfilled' && viewerRes.value.ok) {
+                const data = await viewerRes.value.json();
+                if (viewerCountEl) {
+                    viewerCountEl.textContent = String(data.viewer_ips ?? 0);
+                }
+                if (viewerHintEl) {
+                    const windowSec = data.window_seconds ?? 30;
+                    viewerHintEl.textContent = `Last ${windowSec}s`;
+                }
+            } else if (viewerCountEl) {
+                viewerCountEl.textContent = '—';
+            }
+
+            if (statusRes.status === 'fulfilled' && statusRes.value.ok) {
+                const data = await statusRes.value.json();
+                if (liveSinceEl) {
+                    if (data.active) {
+                        liveSinceEl.textContent = formatStartTime(
+                            data.started_at_epoch || data.started_at
+                        );
+                    } else {
+                        liveSinceEl.textContent = 'Offline';
+                    }
+                }
+            } else if (liveSinceEl) {
+                liveSinceEl.textContent = '—';
+            }
+        }
+
         // Start player
         tryInitStream();
         showTapOverlay();
+        updateStats();
+        setInterval(updateStats, 15000);
 
         function handleVisibility() {
             if (document.visibilityState === 'visible') {
