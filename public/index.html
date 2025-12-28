@@ -402,6 +402,16 @@
             }
         }, 3000);
 
+        function handleVisibility() {
+            if (document.visibilityState === 'visible') {
+                tryInitStream();
+                attemptPlay();
+            }
+        }
+
+        window.addEventListener('focus', handleVisibility);
+        document.addEventListener('visibilitychange', handleVisibility);
+
         // Allow tap-to-play on mobile if autoplay is blocked
         offlineOverlay.addEventListener('click', () => {
             tryInitStream();
