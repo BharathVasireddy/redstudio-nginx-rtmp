@@ -7,8 +7,8 @@
     <meta name="description" content="U-RL.COM - Live Streaming Platform">
     <meta name="theme-color" content="#ffffff">
 
-    <!-- Video.js -->
-    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet">
+    <!-- Plyr -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
 
     <style>
         * {
@@ -25,6 +25,7 @@
             --text-secondary: #4a5568;
             --text-muted: #718096;
             --border: #e2e8f0;
+            --plyr-color-main: #dc2626;
         }
 
         body {
@@ -82,28 +83,32 @@
             background: #000;
         }
 
-        /* Video.js player - full width */
-        .video-js {
+        /* Plyr player - full width */
+        .plyr {
             width: 100%;
             height: min(70vh, 720px);
             background: #000;
         }
 
+        .plyr__video-wrapper {
+            background: #000;
+        }
+
         /* Responsive: limit height on smaller screens */
         @media (max-width: 1024px) {
-            .video-js {
+            .plyr {
                 height: auto;
                 aspect-ratio: 16/9;
             }
         }
 
-        /* Hide default big play button */
-        .video-js .vjs-big-play-button {
+        /* Hide Plyr's overlay play button (custom overlay used) */
+        .plyr__control--overlaid {
             display: none !important;
         }
 
         /* Control bar styling */
-        .video-js .vjs-control-bar {
+        .plyr__controls {
             background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
             height: 56px;
             padding: 0 16px;
@@ -111,27 +116,10 @@
             align-items: center;
         }
 
-        /* Push PiP and fullscreen to the right */
-        .video-js .vjs-picture-in-picture-control {
-            margin-left: auto;
-        }
-
-        /* Red accent for progress and volume */
-        .video-js .vjs-play-progress,
-        .video-js .vjs-volume-level {
-            background: var(--primary);
-        }
-
         /* Hide progress bar and time for live streams */
-        .video-js .vjs-progress-control,
-        .video-js .vjs-time-control,
-        .video-js .vjs-remaining-time,
-        .video-js .vjs-current-time,
-        .video-js .vjs-duration,
-        .video-js .vjs-live-control,
-        .video-js .vjs-live-display,
-        .video-js .vjs-control-bar .vjs-live-control,
-        .video-js .vjs-control-bar .vjs-live-display {
+        .plyr__progress,
+        .plyr__progress__container,
+        .plyr__time {
             display: none !important;
         }
 
@@ -416,7 +404,7 @@
                 font-size: 0.875rem;
             }
 
-            .video-js .vjs-control-bar {
+            .plyr__controls {
                 height: 48px;
                 padding: 0 12px;
             }
@@ -454,8 +442,7 @@
 
         <div class="video-container">
         <!-- Video.js Player -->
-        <video id="player" class="video-js vjs-live" controls playsinline preload="auto">
-        </video>
+        <video id="player" controls playsinline preload="auto"></video>
 
         <div class="tap-overlay hidden" id="tapOverlay">
             <button class="tap-button" type="button">Play Live</button>
@@ -514,9 +501,13 @@
     <div class="status-toast" id="statusToast">Reconnected</div>
 
     <!-- Scripts -->
-    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script>
         let player = null;
+        let hls = null;
+        let mediaEventsBound = false;
+        const videoElement = document.getElementById('player');
         let isReconnecting = false;
         let wasReconnecting = false;
         let consecutiveErrors = 0;
@@ -545,106 +536,160 @@
         const VIEWER_URL = '/hls-viewers.json';
         const STATUS_URL = '/stream-status.json';
 
-        // Initialize Video.js player
-        function initPlayer(url) {
-            if (player) {
-                player.src({ src: url, type: 'application/x-mpegURL' });
-                attemptPlay();
+        function bindMediaEvents() {
+            if (mediaEventsBound || !videoElement) {
                 return;
             }
+            mediaEventsBound = true;
 
-            const useNativeHls = videojs.browser.IS_IOS || videojs.browser.IS_ANY_SAFARI;
-
-            player = videojs('player', {
-                liveui: false,
-                liveTracker: {
-                    trackingThreshold: 0,
-                    liveTolerance: 15
-                },
-                html5: {
-                    vhs: {
-                        overrideNative: !useNativeHls
-                    },
-                    nativeAudioTracks: false,
-                    nativeVideoTracks: false
-                },
-                controls: true,
-                autoplay: true,
-                preload: 'auto',
-                responsive: true,
-                fluid: false
-            });
-
-            player.src({ src: url, type: 'application/x-mpegURL' });
-
-            player.on('playing', () => {
+            videoElement.addEventListener('playing', () => {
                 offlineOverlay.classList.add('hidden');
                 setReconnectState(false);
                 hideTapOverlay();
                 applyPreferredAudio();
                 consecutiveErrors = 0;
                 hideBuffering();
-                if (player.error()) {
-                    player.error(null);
-                }
                 if (wasReconnecting) {
                     showToast('Reconnected');
                     wasReconnecting = false;
                 }
             });
 
-            player.on('error', () => {
+            videoElement.addEventListener('error', () => {
                 console.log('Player error, will retry');
                 consecutiveErrors += 1;
                 scheduleReconnect();
                 showTapOverlay();
             });
 
-            player.on('stalled', () => {
+            videoElement.addEventListener('stalled', () => {
                 setTimeout(() => {
-                    if (player && player.readyState() < 2) {
+                    if (videoElement && videoElement.readyState < 2) {
                         showBuffering();
                         scheduleReconnect();
                     }
                 }, 2000);
             });
 
-            player.on('waiting', () => {
+            videoElement.addEventListener('waiting', () => {
                 setReconnectState(true);
                 showBuffering();
             });
 
-            player.on('loadedmetadata', () => {
+            videoElement.addEventListener('loadedmetadata', () => {
                 setReconnectState(false);
                 applyPreferredAudio();
                 hideBuffering();
             });
 
-            player.on('pause', () => {
+            videoElement.addEventListener('pause', () => {
                 showTapOverlay();
             });
 
-            player.on('volumechange', () => {
+            videoElement.addEventListener('volumechange', () => {
                 storeAudioPrefs();
             });
+        }
 
-            player.on('useractive', () => {
+        function bindPlyrEvents() {
+            if (!player) {
+                return;
+            }
+            player.on('controlsshown', () => {
                 if (liveBadge) {
                     liveBadge.classList.add('show');
                 }
             });
-
-            player.on('userinactive', () => {
+            player.on('controlshidden', () => {
                 if (liveBadge) {
                     liveBadge.classList.remove('show');
                 }
             });
-
-            player.on('fullscreenchange', () => {
+            player.on('enterfullscreen', () => {
                 suspendReconnectUntil = Date.now() + 4000;
                 showTapOverlay();
             });
+            player.on('exitfullscreen', () => {
+                suspendReconnectUntil = Date.now() + 4000;
+                showTapOverlay();
+            });
+        }
 
+        function handleHlsError(data) {
+            if (!hls || !data || !data.fatal) {
+                return;
+            }
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                hls.startLoad();
+                scheduleReconnect();
+                return;
+            }
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                hls.recoverMediaError();
+                return;
+            }
+            hls.destroy();
+            hls = null;
+            scheduleReconnect();
+        }
+
+        function attachSource(url) {
+            if (!videoElement) {
+                return;
+            }
+
+            if (window.Hls && Hls.isSupported()) {
+                if (hls) {
+                    hls.destroy();
+                }
+                hls = new Hls({
+                    lowLatencyMode: false,
+                    maxBufferLength: 30,
+                    backBufferLength: 30,
+                    liveSyncDurationCount: 2,
+                    liveMaxLatencyDurationCount: 6
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    handleHlsError(data);
+                });
+                hls.loadSource(url);
+                hls.attachMedia(videoElement);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    attemptPlay();
+                });
+                return;
+            }
+
+            if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                if (hls) {
+                    hls.destroy();
+                    hls = null;
+                }
+                videoElement.src = url;
+                return;
+            }
+
+            offlineOverlay.classList.remove('hidden');
+            offlineText.textContent = 'Unsupported Browser';
+            offlineHint.textContent = 'This browser cannot play the live stream.';
+        }
+
+        function initPlayer(url) {
+            if (!videoElement) {
+                return;
+            }
+
+            if (!player) {
+                player = new Plyr(videoElement, {
+                    autoplay: true,
+                    clickToPlay: true,
+                    controls: ['play', 'mute', 'volume']
+                });
+                bindMediaEvents();
+                bindPlyrEvents();
+            }
+
+            attachSource(url);
             attemptPlay();
         }
 
@@ -716,10 +761,11 @@
         }
 
         function attemptPlay() {
-            if (!player) {
+            const target = player || videoElement;
+            if (!target || typeof target.play !== 'function') {
                 return;
             }
-            const playPromise = player.play();
+            const playPromise = target.play();
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(() => {
                     showTapOverlay();
@@ -728,11 +774,12 @@
         }
 
         function storeAudioPrefs() {
-            if (!player) {
+            const target = player || videoElement;
+            if (!target) {
                 return;
             }
-            const muted = player.muted();
-            const volume = player.volume();
+            const muted = Boolean(target.muted);
+            const volume = typeof target.volume === 'number' ? target.volume : 1;
             try {
                 localStorage.setItem(STORAGE_MUTED, String(muted));
                 localStorage.setItem(STORAGE_VOLUME, String(volume));
@@ -762,15 +809,16 @@
         }
 
         function applyPreferredAudio() {
-            if (!player) {
+            const target = player || videoElement;
+            if (!target) {
                 return;
             }
             const prefs = readAudioPrefs();
+            target.muted = prefs.muted;
             if (!prefs.muted) {
-                player.muted(false);
-                player.volume(prefs.volume);
+                target.volume = prefs.volume;
             }
-            toggleAudioPrompt(player.muted());
+            toggleAudioPrompt(target.muted);
         }
 
         function toggleAudioPrompt(show) {
@@ -902,12 +950,13 @@
 
         if (audioPrompt) {
             audioPrompt.addEventListener('click', () => {
-                if (!player) {
+                const target = player || videoElement;
+                if (!target) {
                     return;
                 }
-                player.muted(false);
+                target.muted = false;
                 const prefs = readAudioPrefs();
-                player.volume(prefs.volume);
+                target.volume = prefs.volume;
                 toggleAudioPrompt(false);
                 storeAudioPrefs();
                 attemptPlay();
@@ -919,12 +968,13 @@
                 return;
             }
             userGestureHandled = true;
-            if (!player) {
+            const target = player || videoElement;
+            if (!target) {
                 return;
             }
-            player.muted(false);
+            target.muted = false;
             const prefs = readAudioPrefs();
-            player.volume(prefs.volume);
+            target.volume = prefs.volume;
             toggleAudioPrompt(false);
             storeAudioPrefs();
             attemptPlay();
