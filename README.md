@@ -9,6 +9,8 @@ Minimal live streaming server built on the nginx-rtmp-module.
 - Watch URL: `http://<server-ip>/` (port 80) or `http://<server-ip>:8080/`
 - HLS playlist: `http://<server-ip>/hls/stream.m3u8`
 
+Setup docs by OS: `docs/SETUP.md`
+
 ## Quick Checklist (Before Going Live)
 
 - In `/admin`, set a strong **Ingest Key** and click **Save & Apply**.
