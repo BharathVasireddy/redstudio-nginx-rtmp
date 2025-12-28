@@ -114,6 +114,41 @@ ssh -i key.pem ubuntu@<server-ip> "sudo /var/www/nginx-rtmp-module/deploy.sh"
 - Optional: set GitHub secrets `ADMIN_USER` and `ADMIN_PASSWORD` to override.
 - UI login uses a session cookie (no browser popup).
 
+## Embedding
+
+Use `/admin` → **Embed Options** to generate the embed code or HLS URL.
+
+Embed options:
+- Full page: `https://<your-domain>/`
+- Player-only: `https://<your-domain>/embed.html?controls=1&badge=1&stats=1&muted=1`
+- Direct HLS: `https://<your-domain>/hls/stream.m3u8`
+
+Responsive iframe example:
+
+```html
+<div style="position:relative;padding-top:56.25%;">
+  <iframe
+    src="https://live.example.com/embed.html?controls=1&badge=1&stats=1&muted=1"
+    style="position:absolute;inset:0;width:100%;height:100%;border:0;"
+    allow="autoplay; fullscreen; picture-in-picture"
+    allowfullscreen
+  ></iframe>
+</div>
+```
+
+Fixed size example:
+
+```html
+<iframe
+  src="https://live.example.com/embed.html?controls=1&badge=1&stats=0&muted=0"
+  width="100%"
+  height="560"
+  style="border:0;"
+  allow="autoplay; fullscreen; picture-in-picture"
+  allowfullscreen
+></iframe>
+```
+
 ## Ingest Security (Simple + Secure)
 
 - Only the **Ingest Key** can publish (enforced by `on_publish`).
