@@ -283,17 +283,25 @@
         .offline-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
             z-index: 10;
-            padding: 2rem;
         }
 
         .offline-overlay.hidden {
             display: none;
+        }
+
+        .offline-overlay svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 0.75rem;
+            opacity: 0.4;
         }
 
         .tap-overlay {
@@ -441,64 +449,15 @@
             opacity: 1;
         }
 
-        .offline-icon {
-            width: 120px;
-            height: 120px;
-            background: rgba(220, 38, 38, 0.1);
-            border: 2px solid rgba(220, 38, 38, 0.3);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-
-        .offline-icon svg {
-            width: 60px;
-            height: 60px;
-            color: rgba(220, 38, 38, 0.8);
-        }
-
-        .offline-text {
-            font-size: 2rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            text-align: center;
-        }
-
-        .offline-hint {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.6);
-            text-align: center;
-        }
-
-        /* Loading spinner animation */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .offline-icon.loading {
-            animation: spin 2s linear infinite;
-        }
-
         /* Responsive adjustments */
         @media (max-width: 640px) {
-            .offline-icon {
-                width: 80px;
-                height: 80px;
-            }
-
-            .offline-icon svg {
+            .offline-overlay svg {
                 width: 40px;
                 height: 40px;
             }
 
-            .offline-text {
-                font-size: 1.5rem;
-            }
-
-            .offline-hint {
-                font-size: 0.875rem;
+            .offline-overlay {
+                font-size: 0.8rem;
             }
 
             .plyr__controls {
@@ -564,14 +523,11 @@
 
         <!-- Offline Overlay -->
         <div class="offline-overlay hidden" id="offlineOverlay">
-            <div class="offline-icon" id="offlineIcon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="23 7 16 12 23 17 23 7" />
-                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                </svg>
-            </div>
-            <div class="offline-text" id="offlineText">Stream Offline</div>
-            <div class="offline-hint" id="offlineHint">Waiting for broadcast. Tap the video to retry.</div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7" />
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+            <span>Stream Offline</span>
         </div>
         </div>
 
@@ -635,9 +591,6 @@
         const STREAM_URL = '/hls/stream.m3u8';
 
         const offlineOverlay = document.getElementById('offlineOverlay');
-        const offlineText = document.getElementById('offlineText');
-        const offlineHint = document.getElementById('offlineHint');
-        const offlineIcon = document.getElementById('offlineIcon');
         const tapOverlay = document.getElementById('tapOverlay');
         const audioPrompt = document.getElementById('audioPrompt');
         const bufferingOverlay = document.getElementById('bufferingOverlay');
@@ -784,8 +737,6 @@
             }
 
             offlineOverlay.classList.remove('hidden');
-            offlineText.textContent = 'Unsupported Browser';
-            offlineHint.textContent = 'This browser cannot play the live stream.';
         }
 
         function initPlayer(url) {
@@ -813,13 +764,7 @@
                 if (consecutiveErrors >= 2) {
                     offlineOverlay.classList.remove('hidden');
                 }
-                offlineIcon.classList.add('loading');
-                offlineText.textContent = 'Reconnecting';
-                offlineHint.textContent = 'Restoring stream. Tap the video to retry.';
             } else {
-                offlineIcon.classList.remove('loading');
-                offlineText.textContent = 'Stream Offline';
-                offlineHint.textContent = 'Waiting for broadcast. Tap the video to retry.';
                 if (consecutiveErrors >= 2) {
                     offlineOverlay.classList.remove('hidden');
                 } else {
