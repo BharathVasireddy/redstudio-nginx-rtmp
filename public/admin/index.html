@@ -158,6 +158,26 @@
             gap: 1rem;
         }
 
+        .footer-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .reconnect-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .reconnect-toggle input {
+            width: 16px;
+            height: 16px;
+        }
+
         /* Platform Row */
         .platform-row {
             background: var(--bg-tertiary);
@@ -488,7 +508,13 @@
                 <div id="list"></div>
             </div>
             <div class="card-footer">
-                <div class="status" id="status"></div>
+                <div class="footer-controls">
+                    <div class="status" id="status"></div>
+                    <label class="reconnect-toggle">
+                        <input type="checkbox" id="reconnectToggle" checked>
+                        Reconnect stream after apply
+                    </label>
+                </div>
                 <button class="btn btn-secondary" id="addBtn">+ Add Custom Platform</button>
             </div>
         </div>
@@ -504,6 +530,7 @@
         const saveBtn = document.getElementById('saveBtn');
         const applyBtn = document.getElementById('applyBtn');
         const toastContainer = document.getElementById('toastContainer');
+        const reconnectToggle = document.getElementById('reconnectToggle');
 
         const defaultDestinations = [
             {
@@ -704,6 +731,22 @@
                     statusEl.textContent = '✓ Saved and applied successfully';
                     statusEl.className = 'status success';
                     showToast('Saved and applied successfully', 'success');
+                    if (reconnectToggle && reconnectToggle.checked) {
+                        statusEl.textContent = 'Reconnecting stream...';
+                        statusEl.className = 'status';
+                        showToast('Reconnecting stream...', 'info');
+                        const reconnectRes = await fetch(`${apiBase}/stream/reconnect`, { method: 'POST' });
+                        if (!reconnectRes.ok) {
+                            const errorMessage = await getErrorMessage(reconnectRes);
+                            statusEl.textContent = 'Reconnect failed';
+                            statusEl.className = 'status error';
+                            showToast(`Reconnect failed: ${errorMessage}`, 'error');
+                            return;
+                        }
+                        statusEl.textContent = '✓ Stream reconnected';
+                        statusEl.className = 'status success';
+                        showToast('Stream reconnected', 'success');
+                    }
                     return;
                 }
 

@@ -2,6 +2,7 @@
 import json
 import os
 import subprocess
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -11,6 +12,12 @@ DATA_DIR = ROOT_DIR / "data"
 CONFIG_PATH = DATA_DIR / "restream.json"
 DEFAULT_CONFIG = ROOT_DIR / "config" / "restream.default.json"
 APPLY_SCRIPT = ROOT_DIR / "scripts" / "restream-apply.sh"
+STREAM_APP = os.environ.get("STREAM_APP", "live")
+STREAM_NAME = os.environ.get("STREAM_NAME", "stream")
+CONTROL_URL = os.environ.get(
+    "CONTROL_URL",
+    f"http://127.0.0.1/control/drop/publisher?app={STREAM_APP}&name={STREAM_NAME}",
+)
 
 
 def sanitize_destination(dest: dict) -> dict:
@@ -83,6 +90,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"status": "applied"})
             except subprocess.CalledProcessError as exc:
                 self._send_json({"error": f"apply failed: {exc}"}, status=500)
+            return
+        if self.path == "/api/stream/reconnect":
+            try:
+                with urllib.request.urlopen(CONTROL_URL, timeout=4) as response:
+                    body = response.read().decode("utf-8")
+                self._send_json({"status": "reconnecting", "result": body})
+            except Exception as exc:
+                self._send_json({"error": f"reconnect failed: {exc}"}, status=500)
             return
         self._send_json({"error": "not found"}, status=404)
 
