@@ -494,6 +494,7 @@
             <div class="actions">
                 <button class="btn btn-secondary" id="saveBtn">Save Changes</button>
                 <button class="btn btn-primary" id="applyBtn">Save & Apply</button>
+                <button class="btn btn-secondary" id="logoutBtn">Logout</button>
             </div>
         </div>
     </header>
@@ -531,6 +532,7 @@
         const applyBtn = document.getElementById('applyBtn');
         const toastContainer = document.getElementById('toastContainer');
         const reconnectToggle = document.getElementById('reconnectToggle');
+        const logoutBtn = document.getElementById('logoutBtn');
 
         const defaultDestinations = [
             {
@@ -609,6 +611,20 @@
                 await new Promise((resolve) => setTimeout(resolve, 1000));
             }
             return false;
+        }
+
+        async function ensureSession() {
+            try {
+                const res = await fetch(`${apiBase}/session`, { cache: 'no-store' });
+                if (res.status === 401) {
+                    window.location.href = '/admin/login.html';
+                    return false;
+                }
+                return res.ok;
+            } catch (err) {
+                window.location.href = '/admin/login.html';
+                return false;
+            }
         }
 
         function mergeDefaults(destinations) {
@@ -703,6 +719,10 @@
         async function loadConfig() {
             try {
                 const res = await fetch(`${apiBase}/restream`);
+                if (res.status === 401) {
+                    window.location.href = '/admin/login.html';
+                    return;
+                }
                 state = await res.json();
                 state.destinations = mergeDefaults(state.destinations);
                 render();
@@ -725,6 +745,11 @@
                     body: JSON.stringify(state)
                 });
 
+                if (res.status === 401) {
+                    window.location.href = '/admin/login.html';
+                    return;
+                }
+
                 if (!res.ok) {
                     const errorMessage = await getErrorMessage(res);
                     statusEl.textContent = 'Save failed';
@@ -739,10 +764,14 @@
                     const restarting = reconnectToggle && reconnectToggle.checked;
                     const restartParam = restarting ? '?restart=1' : '';
                     try {
-                        const applyRes = await fetch(`${apiBase}/restream/apply${restartParam}`, { method: 'POST' });
-                        if (!applyRes.ok) {
-                            if (restarting && [520, 521, 522, 523, 524].includes(applyRes.status)) {
-                                statusEl.textContent = 'Waiting for server...';
+                    const applyRes = await fetch(`${apiBase}/restream/apply${restartParam}`, { method: 'POST' });
+                    if (applyRes.status === 401) {
+                        window.location.href = '/admin/login.html';
+                        return;
+                    }
+                    if (!applyRes.ok) {
+                        if (restarting && [520, 521, 522, 523, 524].includes(applyRes.status)) {
+                            statusEl.textContent = 'Waiting for server...';
                                 showToast('Waiting for server to restart...', 'info');
                                 const recovered = await waitForOrigin();
                                 if (recovered) {
@@ -807,7 +836,21 @@
         listEl.addEventListener('change', updateFromInputs);
         listEl.addEventListener('click', removeItem);
 
-        loadConfig();
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await fetch(`${apiBase}/logout`, { method: 'POST' });
+                } finally {
+                    window.location.href = '/admin/login.html';
+                }
+            });
+        }
+
+        ensureSession().then((ok) => {
+            if (ok) {
+                loadConfig();
+            }
+        });
     </script>
 </body>
 </html>
