@@ -411,6 +411,19 @@
 
         window.addEventListener('focus', handleVisibility);
         document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('online', () => {
+            tryInitStream();
+            attemptPlay();
+        });
+        window.addEventListener('offline', () => {
+            setReconnectState(true);
+        });
+        if (navigator.connection && navigator.connection.addEventListener) {
+            navigator.connection.addEventListener('change', () => {
+                tryInitStream();
+                attemptPlay();
+            });
+        }
 
         // Allow tap-to-play on mobile if autoplay is blocked
         offlineOverlay.addEventListener('click', () => {
