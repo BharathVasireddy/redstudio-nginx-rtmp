@@ -19,6 +19,24 @@ run_cmd() {
     return 1
 }
 
+restart_nginx() {
+    PGREP_BIN="$(command -v pgrep || true)"
+    MASTER_PID=""
+    if [ -n "${PGREP_BIN}" ]; then
+        MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
+    fi
+    if [ -n "${MASTER_PID}" ]; then
+        run_cmd /bin/kill -TERM "${MASTER_PID}" || true
+        for _ in $(seq 1 10); do
+            sleep 0.5
+            if ! "${PGREP_BIN}" -f 'nginx: master' >/dev/null 2>&1; then
+                break
+            fi
+        done
+    fi
+    run_cmd "${NGINX_BIN}"
+}
+
 ensure_sudo() {
     if [ "$(id -u)" -eq 0 ]; then
         return 0
@@ -47,18 +65,22 @@ if [ -x "${NGINX_BIN}" ]; then
 
     run_cmd "${NGINX_BIN}" -t
 
-    if ! run_cmd "${NGINX_BIN}" -s reload; then
-        PGREP_BIN="$(command -v pgrep || true)"
-        if [ -n "${PGREP_BIN}" ]; then
-            MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
-        else
-            MASTER_PID=""
-        fi
-        if [ -n "${MASTER_PID}" ]; then
-            run_cmd /bin/kill -HUP "${MASTER_PID}"
-        else
-            echo "nginx master process not found; reload failed." >&2
-            exit 1
+    if [ "${RESTART_NGINX:-0}" = "1" ]; then
+        restart_nginx
+    else
+        if ! run_cmd "${NGINX_BIN}" -s reload; then
+            PGREP_BIN="$(command -v pgrep || true)"
+            if [ -n "${PGREP_BIN}" ]; then
+                MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
+            else
+                MASTER_PID=""
+            fi
+            if [ -n "${MASTER_PID}" ]; then
+                run_cmd /bin/kill -HUP "${MASTER_PID}"
+            else
+                echo "nginx master process not found; reload failed." >&2
+                exit 1
+            fi
         fi
     fi
 else

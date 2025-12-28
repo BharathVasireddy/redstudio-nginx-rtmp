@@ -512,7 +512,7 @@
                     <div class="status" id="status"></div>
                     <label class="reconnect-toggle">
                         <input type="checkbox" id="reconnectToggle" checked>
-                        Reconnect stream after apply
+                        Restart stream after apply
                     </label>
                 </div>
                 <button class="btn btn-secondary" id="addBtn">+ Add Custom Platform</button>
@@ -718,23 +718,10 @@
                 }
 
                 if (apply) {
-                    if (reconnectToggle && reconnectToggle.checked) {
-                        statusEl.textContent = 'Reconnecting stream...';
-                        statusEl.className = 'status';
-                        showToast('Reconnecting stream...', 'info');
-                        const reconnectRes = await fetch(`${apiBase}/stream/reconnect`, { method: 'POST' });
-                        if (!reconnectRes.ok) {
-                            const errorMessage = await getErrorMessage(reconnectRes);
-                            statusEl.textContent = 'Reconnect failed';
-                            statusEl.className = 'status error';
-                            showToast(`Reconnect failed: ${errorMessage}`, 'error');
-                            return;
-                        }
-                    }
-
                     statusEl.textContent = 'Applying changes...';
                     showToast('Applying changes...', 'info');
-                    const applyRes = await fetch(`${apiBase}/restream/apply`, { method: 'POST' });
+                    const restartParam = reconnectToggle && reconnectToggle.checked ? '?restart=1' : '';
+                    const applyRes = await fetch(`${apiBase}/restream/apply${restartParam}`, { method: 'POST' });
                     if (!applyRes.ok) {
                         const errorMessage = await getErrorMessage(applyRes);
                         statusEl.textContent = 'Apply failed';

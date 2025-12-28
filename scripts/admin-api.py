@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import urllib.request
+from urllib.parse import parse_qs, urlparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -70,13 +71,15 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(raw.decode("utf-8"))
 
     def do_GET(self) -> None:
-        if self.path == "/api/restream":
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/restream":
             self._send_json(load_config())
             return
         self._send_json({"error": "not found"}, status=404)
 
     def do_POST(self) -> None:
-        if self.path == "/api/restream":
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/restream":
             try:
                 payload = self._read_json()
                 save_config(payload)
@@ -84,14 +87,18 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._send_json({"error": str(exc)}, status=400)
             return
-        if self.path == "/api/restream/apply":
+        if parsed.path == "/api/restream/apply":
             try:
-                subprocess.run(["bash", str(APPLY_SCRIPT)], check=True)
+                query = parse_qs(parsed.query)
+                env = os.environ.copy()
+                if query.get("restart", ["0"])[0] == "1":
+                    env["RESTART_NGINX"] = "1"
+                subprocess.run(["bash", str(APPLY_SCRIPT)], check=True, env=env)
                 self._send_json({"status": "applied"})
             except subprocess.CalledProcessError as exc:
                 self._send_json({"error": f"apply failed: {exc}"}, status=500)
             return
-        if self.path == "/api/stream/reconnect":
+        if parsed.path == "/api/stream/reconnect":
             try:
                 with urllib.request.urlopen(CONTROL_URL, timeout=4) as response:
                     body = response.read().decode("utf-8")
