@@ -329,7 +329,7 @@
 
         <div class="video-container">
         <!-- Video.js Player -->
-        <video id="player" class="video-js vjs-live" controls playsinline preload="auto" muted>
+        <video id="player" class="video-js vjs-live" controls playsinline preload="auto">
         </video>
 
         <div class="tap-overlay hidden" id="tapOverlay">
@@ -411,7 +411,7 @@
                     nativeVideoTracks: false
                 },
                 controls: true,
-                autoplay: 'muted',
+                autoplay: true,
                 preload: 'auto',
                 responsive: true,
                 fluid: false
@@ -546,13 +546,15 @@
         }
 
         function readAudioPrefs() {
-            let muted = true;
+            let muted = false;
             let volume = 1;
             try {
                 const storedMuted = localStorage.getItem(STORAGE_MUTED);
                 const storedVolume = localStorage.getItem(STORAGE_VOLUME);
                 if (storedMuted === 'false') {
                     muted = false;
+                } else if (storedMuted === 'true') {
+                    muted = true;
                 }
                 if (storedVolume !== null) {
                     const parsed = Number(storedVolume);
