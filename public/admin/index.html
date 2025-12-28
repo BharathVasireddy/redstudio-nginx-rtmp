@@ -718,6 +718,20 @@
                 }
 
                 if (apply) {
+                    if (reconnectToggle && reconnectToggle.checked) {
+                        statusEl.textContent = 'Reconnecting stream...';
+                        statusEl.className = 'status';
+                        showToast('Reconnecting stream...', 'info');
+                        const reconnectRes = await fetch(`${apiBase}/stream/reconnect`, { method: 'POST' });
+                        if (!reconnectRes.ok) {
+                            const errorMessage = await getErrorMessage(reconnectRes);
+                            statusEl.textContent = 'Reconnect failed';
+                            statusEl.className = 'status error';
+                            showToast(`Reconnect failed: ${errorMessage}`, 'error');
+                            return;
+                        }
+                    }
+
                     statusEl.textContent = 'Applying changes...';
                     showToast('Applying changes...', 'info');
                     const applyRes = await fetch(`${apiBase}/restream/apply`, { method: 'POST' });
@@ -731,22 +745,6 @@
                     statusEl.textContent = '✓ Saved and applied successfully';
                     statusEl.className = 'status success';
                     showToast('Saved and applied successfully', 'success');
-                    if (reconnectToggle && reconnectToggle.checked) {
-                        statusEl.textContent = 'Reconnecting stream...';
-                        statusEl.className = 'status';
-                        showToast('Reconnecting stream...', 'info');
-                        const reconnectRes = await fetch(`${apiBase}/stream/reconnect`, { method: 'POST' });
-                        if (!reconnectRes.ok) {
-                            const errorMessage = await getErrorMessage(reconnectRes);
-                            statusEl.textContent = 'Reconnect failed';
-                            statusEl.className = 'status error';
-                            showToast(`Reconnect failed: ${errorMessage}`, 'error');
-                            return;
-                        }
-                        statusEl.textContent = '✓ Stream reconnected';
-                        statusEl.className = 'status success';
-                        showToast('Stream reconnected', 'success');
-                    }
                     return;
                 }
 
