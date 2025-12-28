@@ -214,6 +214,44 @@
             cursor: pointer;
         }
 
+        .buffering-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+            z-index: 11;
+        }
+
+        .buffering-overlay.show {
+            display: flex;
+        }
+
+        .buffering-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(15, 15, 15, 0.9);
+            color: #fff;
+            border-radius: 999px;
+            padding: 0.5rem 1.1rem;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .buffering-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--primary);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1); }
+        }
         .status-toast {
             position: fixed;
             left: 50%;
@@ -336,6 +374,13 @@
             <button class="audio-button" type="button">Tap for Sound</button>
         </div>
 
+        <div class="buffering-overlay" id="bufferingOverlay">
+            <div class="buffering-pill">
+                <span class="buffering-dot"></span>
+                Buffering…
+            </div>
+        </div>
+
         <!-- Offline Overlay -->
         <div class="offline-overlay hidden" id="offlineOverlay">
             <div class="offline-icon" id="offlineIcon">
@@ -381,6 +426,7 @@
         const offlineIcon = document.getElementById('offlineIcon');
         const tapOverlay = document.getElementById('tapOverlay');
         const audioPrompt = document.getElementById('audioPrompt');
+        const bufferingOverlay = document.getElementById('bufferingOverlay');
         const statusToast = document.getElementById('statusToast');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
@@ -422,6 +468,7 @@
                 hideTapOverlay();
                 applyPreferredAudio();
                 consecutiveErrors = 0;
+                hideBuffering();
                 if (player.error()) {
                     player.error(null);
                 }
@@ -441,6 +488,7 @@
             player.on('stalled', () => {
                 setTimeout(() => {
                     if (player && player.readyState() < 2) {
+                        showBuffering();
                         scheduleReconnect();
                     }
                 }, 2000);
@@ -448,11 +496,13 @@
 
             player.on('waiting', () => {
                 setReconnectState(true);
+                showBuffering();
             });
 
             player.on('loadedmetadata', () => {
                 setReconnectState(false);
                 applyPreferredAudio();
+                hideBuffering();
             });
 
             player.on('pause', () => {
@@ -523,6 +573,18 @@
         function hideTapOverlay() {
             if (tapOverlay) {
                 tapOverlay.classList.add('hidden');
+            }
+        }
+
+        function showBuffering() {
+            if (bufferingOverlay) {
+                bufferingOverlay.classList.add('show');
+            }
+        }
+
+        function hideBuffering() {
+            if (bufferingOverlay) {
+                bufferingOverlay.classList.remove('show');
             }
         }
 
