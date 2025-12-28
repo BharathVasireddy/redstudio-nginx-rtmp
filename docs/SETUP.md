@@ -296,3 +296,21 @@ scripts\doctor-local.bat
 
 - Production ingest keys are enforced via `on_publish`.
 - Local config is minimal and does not enforce ingest keys.
+
+## Streaming Flow (Pick One)
+
+Recommended:
+
+```
+OBS -> Oracle ingest -> (restream) YouTube/Facebook/Twitch
+```
+
+Reason: one upload from your internet, most stable.
+
+Local relay (optional):
+
+```
+OBS -> localhost -> (restream) YouTube + Oracle ingest
+```
+
+Warning: uses one upload per destination from your home internet.

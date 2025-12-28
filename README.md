@@ -148,6 +148,24 @@ sudo ./setup-oracle.sh
 - `/stat` only shows publishers on the active worker (repo defaults to 1 worker).
 - Oracle Free resources are limited; avoid heavy CPU encodes on the server.
 
+## Streaming Flow (Which One Should I Use?)
+
+Best (recommended):
+
+```
+OBS -> Oracle ingest -> (restream) YouTube/Facebook/Twitch
+```
+
+Why: one upload from your internet, most stable.
+
+Alternative (local relay):
+
+```
+OBS -> localhost -> (restream) YouTube + Oracle ingest
+```
+
+Warning: uses one upload per destination from your home internet.
+
 ## Troubleshooting
 
 - OBS can’t connect:
