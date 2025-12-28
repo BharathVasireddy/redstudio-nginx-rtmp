@@ -83,6 +83,7 @@ brew install nginx python
 ### 3) Start the server
 
 ```bash
+chmod +x stream-start.sh
 ./stream-start.sh
 ```
 
@@ -119,6 +120,7 @@ sudo apt-get install -y nginx python3
 ### 3) Start the server
 
 ```bash
+chmod +x stream-start.sh
 ./stream-start.sh
 ```
 
