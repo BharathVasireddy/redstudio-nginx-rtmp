@@ -203,9 +203,9 @@ function Stop-Port8080 {
     Write-Warn "Port 8080 is already in use."
     if (-not $ForceStop) {
         $nonNginx = @()
-        foreach ($pid in $pids) {
+        foreach ($procId in $pids) {
             try {
-                $proc = Get-Process -Id $pid -ErrorAction Stop
+                $proc = Get-Process -Id $procId -ErrorAction Stop
                 if ($proc.Name -ne "nginx") {
                     $nonNginx += $proc.Name
                 }
@@ -226,13 +226,13 @@ function Stop-Port8080 {
     $pids = Get-PortPids -Port 8080
     if ($pids -and $pids.Count -gt 0) {
         if ($ForceStop) {
-            foreach ($pid in $pids) {
-                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            foreach ($procId in $pids) {
+                Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
             }
             Start-Sleep -Seconds 1
             $pids = @(Get-PortPids -Port 8080)
-            foreach ($pid in $pids) {
-                cmd /c "taskkill /F /PID $pid /T" > $null 2>&1
+            foreach ($procId in $pids) {
+                cmd /c "taskkill /F /PID $procId /T" > $null 2>&1
             }
         } else {
             Get-Process -Name nginx -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -254,13 +254,13 @@ function Stop-Port9090 {
     if (-not $ForceStop) {
         Die "Port 9090 is in use. Re-run with -ForceStop to stop it."
     }
-    foreach ($pid in $pids) {
-        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    foreach ($procId in $pids) {
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
     }
     Start-Sleep -Seconds 1
     $pids = @(Get-PortPids -Port 9090)
-    foreach ($pid in $pids) {
-        cmd /c "taskkill /F /PID $pid /T" > $null 2>&1
+    foreach ($procId in $pids) {
+        cmd /c "taskkill /F /PID $procId /T" > $null 2>&1
     }
     Start-Sleep -Seconds 1
     $pids = @(Get-PortPids -Port 9090)
