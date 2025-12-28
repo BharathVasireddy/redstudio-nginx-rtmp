@@ -273,7 +273,7 @@
             box-shadow: 0 0 10px rgba(220, 38, 38, 0.7);
         }
 
-        .video-js.vjs-user-active ~ .live-badge {
+        .live-badge.show {
             opacity: 1;
             transform: translateY(0);
         }
@@ -470,6 +470,7 @@
         const tapOverlay = document.getElementById('tapOverlay');
         const audioPrompt = document.getElementById('audioPrompt');
         const bufferingOverlay = document.getElementById('bufferingOverlay');
+        const liveBadge = document.getElementById('liveBadge');
         const statusToast = document.getElementById('statusToast');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
@@ -554,6 +555,18 @@
 
             player.on('volumechange', () => {
                 storeAudioPrefs();
+            });
+
+            player.on('useractive', () => {
+                if (liveBadge) {
+                    liveBadge.classList.add('show');
+                }
+            });
+
+            player.on('userinactive', () => {
+                if (liveBadge) {
+                    liveBadge.classList.remove('show');
+                }
             });
 
             player.on('fullscreenchange', () => {
