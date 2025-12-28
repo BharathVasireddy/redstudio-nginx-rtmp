@@ -372,6 +372,7 @@
         let lastInitAt = 0;
         let suspendReconnectUntil = 0;
         let toastTimer = null;
+        let userGestureHandled = false;
         const STORAGE_MUTED = 'rs_muted';
         const STORAGE_VOLUME = 'rs_volume';
         const REINIT_COOLDOWN_MS = 3000;
@@ -423,6 +424,9 @@
                 setReconnectState(false);
                 hideTapOverlay();
                 applyPreferredAudio();
+                if (player.error()) {
+                    player.error(null);
+                }
                 if (wasReconnecting) {
                     showToast('Reconnected');
                     wasReconnecting = false;
@@ -436,7 +440,11 @@
             });
 
             player.on('stalled', () => {
-                scheduleReconnect();
+                setTimeout(() => {
+                    if (player && player.readyState() < 2) {
+                        scheduleReconnect();
+                    }
+                }, 2000);
             });
 
             player.on('waiting', () => {
@@ -572,8 +580,7 @@
             if (!audioPrompt) {
                 return;
             }
-            const prefs = readAudioPrefs();
-            const shouldShow = show && (isMobile || !prefs.muted);
+            const shouldShow = show;
             if (shouldShow) {
                 audioPrompt.classList.add('show');
             } else {
@@ -598,11 +605,6 @@
         // Start player
         tryInitStream();
         showTapOverlay();
-        setInterval(() => {
-            if (!player || player.error()) {
-                scheduleReconnect();
-            }
-        }, 3000);
 
         function handleVisibility() {
             if (document.visibilityState === 'visible') {
@@ -654,6 +656,26 @@
                 attemptPlay();
             });
         }
+
+        function handleUserGesture() {
+            if (userGestureHandled) {
+                return;
+            }
+            userGestureHandled = true;
+            if (!player) {
+                return;
+            }
+            player.muted(false);
+            const prefs = readAudioPrefs();
+            player.volume(prefs.volume);
+            toggleAudioPrompt(false);
+            storeAudioPrefs();
+            attemptPlay();
+        }
+
+        document.addEventListener('pointerdown', handleUserGesture, { passive: true });
+        document.addEventListener('touchstart', handleUserGesture, { passive: true });
+        document.addEventListener('keydown', handleUserGesture);
     </script>
 </body>
 </html>
