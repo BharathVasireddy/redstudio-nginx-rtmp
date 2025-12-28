@@ -104,6 +104,7 @@ if command -v systemctl >/dev/null 2>&1; then
     sudo systemctl daemon-reload
     sudo systemctl enable --now hls-viewers.timer >/dev/null 2>&1 || true
     sudo systemctl enable --now redstudio-admin.service >/dev/null 2>&1 || true
+    sudo systemctl restart redstudio-admin.service >/dev/null 2>&1 || true
 fi
 
 # Allow admin API to reload NGINX without prompting for sudo.
