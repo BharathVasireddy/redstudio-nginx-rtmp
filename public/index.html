@@ -913,7 +913,7 @@
 
         function handleVisibility() {
             if (document.visibilityState === 'visible') {
-                tryInitStream();
+                // Only resume playback, don't reinitialize stream
                 attemptPlay();
             }
         }
