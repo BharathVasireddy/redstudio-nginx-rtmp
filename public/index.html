@@ -240,6 +240,32 @@
             border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
+        .live-badge {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 12;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(12, 12, 12, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--primary);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.7);
+        }
+
         .buffering-dot {
             width: 8px;
             height: 8px;
@@ -372,6 +398,11 @@
 
         <div class="audio-prompt" id="audioPrompt">
             <button class="audio-button" type="button">Tap for Sound</button>
+        </div>
+
+        <div class="live-badge" id="liveBadge">
+            <span class="live-dot" aria-hidden="true"></span>
+            Live
         </div>
 
         <div class="buffering-overlay" id="bufferingOverlay">
