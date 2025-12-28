@@ -125,9 +125,63 @@
             font-size: 0.8rem;
         }
 
-        .toggle input {
-            width: 16px;
-            height: 16px;
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            display: inline-block;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-switch .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+            transition: background 0.2s ease;
+        }
+
+        .toggle-switch .slider::before {
+            content: "";
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 999px;
+            transition: transform 0.2s ease;
+        }
+
+        .toggle-switch input:checked + .slider {
+            background: rgba(34, 197, 94, 0.8);
+        }
+
+        .toggle-switch input:checked + .slider::before {
+            transform: translateX(20px);
+        }
+
+        .toggle-label {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .row.is-enabled {
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            background: rgba(34, 197, 94, 0.06);
         }
 
         .remove-btn {
@@ -255,7 +309,7 @@
             listEl.innerHTML = '';
             state.destinations.forEach((dest, index) => {
                 const row = document.createElement('div');
-                row.className = 'row';
+                row.className = `row${dest.enabled ? ' is-enabled' : ''}`;
                 row.innerHTML = `
                     <div class="field">
                         <label>Platform Name</label>
@@ -270,10 +324,13 @@
                         <input data-index="${index}" data-field="stream_key" value="${dest.stream_key || ''}">
                     </div>
                     <div>
-                        <label class="toggle">
-                            <input type="checkbox" data-index="${index}" data-field="enabled" ${dest.enabled ? 'checked' : ''}>
-                            Enabled
-                        </label>
+                        <div class="toggle-group">
+                            <label class="toggle-switch">
+                                <input type="checkbox" data-index="${index}" data-field="enabled" ${dest.enabled ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-label">Enabled</span>
+                        </div>
                         <button class="remove-btn" data-index="${index}">Remove</button>
                     </div>
                 `;
