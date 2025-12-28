@@ -73,7 +73,7 @@ if [ -n "${ADMIN_PASSWORD}" ] || [ ! -f "${ADMIN_HTPASSWD}" ]; then
     fi
     HASH="$(openssl passwd -apr1 "${ADMIN_PASSWORD}")"
     printf "%s:%s\n" "${ADMIN_USER}" "${HASH}" | sudo tee "${ADMIN_HTPASSWD}" >/dev/null
-    sudo chmod 640 "${ADMIN_HTPASSWD}"
+    sudo chmod 644 "${ADMIN_HTPASSWD}"
 fi
 
 # Ensure runtime directories are writable by NGINX
