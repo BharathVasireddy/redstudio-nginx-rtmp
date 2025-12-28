@@ -117,8 +117,8 @@ function Get-PortPids {
 }
 
 function Stop-Port8080 {
-    $pids = Get-PortPids -Port 8080
-    if (!$pids -or $pids.Count -eq 0) {
+    $pids = @(Get-PortPids -Port 8080)
+    if (-not $pids -or $pids.Count -eq 0) {
         return
     }
     Write-Warn "Port 8080 is already in use."
@@ -162,8 +162,8 @@ function Stop-Port8080 {
 }
 
 function Stop-Port9090 {
-    $pids = Get-PortPids -Port 9090
-    if (!$pids -or $pids.Count -eq 0) {
+    $pids = @(Get-PortPids -Port 9090)
+    if (-not $pids -or $pids.Count -eq 0) {
         return
     }
     Write-Warn "Port 9090 is already in use."
