@@ -792,9 +792,11 @@
                 state.destinations = mergeDefaults(state.destinations);
                 render();
             } catch (err) {
-                statusEl.textContent = 'Failed to load configuration';
+                statusEl.textContent = 'Using default configuration';
                 statusEl.className = 'status error';
-                showToast('Failed to load configuration', 'error');
+                state = { destinations: mergeDefaults([]), ingest_key: '' };
+                render();
+                showToast('Admin API not reachable. Showing defaults.', 'error');
             }
         }
 

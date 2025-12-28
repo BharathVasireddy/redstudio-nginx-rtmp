@@ -1,7 +1,6 @@
 # Logs
-logs/*.log
+logs/
 *.log
-logs/nginx.pid
 
 # Temporary HLS files
 temp/
@@ -33,6 +32,9 @@ data/admin.credentials
 # Local config backups
 *.backup
 conf/*.backup
+
+# Local nginx includes
+conf/data/
 
 # IDE
 .vscode/

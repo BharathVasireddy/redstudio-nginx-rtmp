@@ -35,18 +35,61 @@ Recommended encoder settings (safe defaults):
 ## Local (macOS / Linux)
 
 ```bash
+chmod +x scripts/setup-local.sh
+./scripts/setup-local.sh --force-stop
+```
+
+Or start manually:
+
+```bash
 ./stream-start.sh
 ```
 
 Watch at `http://localhost:8080/` and stream to:
 `rtmp://localhost/ingest` with the stream key from `/admin` (or leave blank if you haven't set one yet).
 
+Stop (macOS/Linux):
+
+```bash
+chmod +x scripts/stop-local.sh
+./scripts/stop-local.sh
+```
+
 ## Local (Windows)
 
-Run `stream-start.bat`.
+Recommended:
+
+```
+scripts\setup-local.bat -ForceStop
+```
+
+If PowerShell blocks scripts:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup-local.ps1 -ForceStop
+```
+
+Or run `stream-start.bat`.
 
 Watch at `http://localhost:8080/` and stream to:
 `rtmp://localhost/ingest` with the stream key from `/admin` (or leave blank if you haven't set one yet).
+
+Stop (Windows):
+
+```
+scripts\stop-local.bat
+```
+
+Diagnostics:
+
+```bash
+chmod +x scripts/doctor-local.sh
+./scripts/doctor-local.sh
+```
+
+```
+scripts\doctor-local.bat
+```
 
 ## Deployment
 
