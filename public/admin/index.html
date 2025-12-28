@@ -165,6 +165,40 @@
             flex-wrap: wrap;
         }
 
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .metric-subvalue {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
         .reconnect-toggle {
             display: inline-flex;
             align-items: center;
@@ -481,6 +515,10 @@
                 flex-direction: column-reverse;
                 align-items: stretch;
             }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
     </style>
 </head>
@@ -524,6 +562,38 @@
             </div>
         </div>
 
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h1 class="card-title">Server Health</h1>
+                <p class="card-subtitle">CPU, memory, disk, and network usage.</p>
+            </div>
+            <div class="card-body">
+                <div class="metrics-grid" id="metricsGrid">
+                    <div class="metric-card">
+                        <div class="metric-label">CPU</div>
+                        <div class="metric-value" id="cpuValue">--</div>
+                        <div class="metric-subvalue" id="cpuSub">Load --</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Memory</div>
+                        <div class="metric-value" id="memValue">--</div>
+                        <div class="metric-subvalue" id="memSub">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Disk</div>
+                        <div class="metric-value" id="diskValue">--</div>
+                        <div class="metric-subvalue" id="diskSub">--</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Network</div>
+                        <div class="metric-value" id="netValue">--</div>
+                        <div class="metric-subvalue" id="netSub">--</div>
+                    </div>
+                </div>
+                <div class="status" id="metricsStatus" style="margin-top: 0.75rem;"></div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h1 class="card-title">Multistream Destinations</h1>
@@ -562,6 +632,15 @@
         const generateKeyBtn = document.getElementById('generateKeyBtn');
         const copyKeyBtn = document.getElementById('copyKeyBtn');
         const toggleKeyBtn = document.getElementById('toggleKeyBtn');
+        const metricsStatus = document.getElementById('metricsStatus');
+        const cpuValue = document.getElementById('cpuValue');
+        const cpuSub = document.getElementById('cpuSub');
+        const memValue = document.getElementById('memValue');
+        const memSub = document.getElementById('memSub');
+        const diskValue = document.getElementById('diskValue');
+        const diskSub = document.getElementById('diskSub');
+        const netValue = document.getElementById('netValue');
+        const netSub = document.getElementById('netSub');
 
         const defaultDestinations = [
             {
@@ -747,6 +826,75 @@
                 `;
                 listEl.appendChild(row);
             });
+        }
+
+        function formatNumber(value) {
+            if (value === null || value === undefined || Number.isNaN(value)) {
+                return '--';
+            }
+            return value.toFixed(1);
+        }
+
+        function renderMetrics(data) {
+            if (!data || data.supported === false) {
+                metricsStatus.textContent = 'Metrics not available on this server.';
+                metricsStatus.className = 'status error';
+                return;
+            }
+
+            if (data.cpu) {
+                cpuValue.textContent = data.cpu.usage_pct === null ? '--' : `${formatNumber(data.cpu.usage_pct)}%`;
+                if (Array.isArray(data.loadavg)) {
+                    cpuSub.textContent = `Load ${data.loadavg.join(', ')}`;
+                } else {
+                    cpuSub.textContent = 'Load --';
+                }
+            }
+
+            if (data.memory) {
+                const used = data.memory.used_mb;
+                const total = data.memory.total_mb;
+                const pct = data.memory.used_pct;
+                memValue.textContent = (used === null || total === null) ? '--' : `${formatNumber(used)} / ${formatNumber(total)} MB`;
+                memSub.textContent = pct === null ? '--' : `${formatNumber(pct)}% used`;
+            }
+
+            if (data.disk) {
+                const used = data.disk.used_gb;
+                const total = data.disk.total_gb;
+                const pct = data.disk.used_pct;
+                diskValue.textContent = (used === null || total === null) ? '--' : `${formatNumber(used)} / ${formatNumber(total)} GB`;
+                diskSub.textContent = pct === null ? '--' : `${formatNumber(pct)}% used`;
+            }
+
+            if (data.network) {
+                const rx = data.network.rx_mbps;
+                const tx = data.network.tx_mbps;
+                netValue.textContent = (rx === null || tx === null) ? '--' : `${rx.toFixed(2)} ↓ / ${tx.toFixed(2)} ↑ Mbps`;
+                netSub.textContent = data.uptime_sec ? `Uptime ${Math.floor(data.uptime_sec / 3600)}h` : 'Uptime --';
+            }
+
+            metricsStatus.textContent = '';
+            metricsStatus.className = 'status';
+        }
+
+        async function loadMetrics() {
+            try {
+                const res = await fetch(`${apiBase}/metrics`, { cache: 'no-store' });
+                if (res.status === 401) {
+                    return;
+                }
+                if (!res.ok) {
+                    metricsStatus.textContent = 'Metrics unavailable';
+                    metricsStatus.className = 'status error';
+                    return;
+                }
+                const data = await res.json();
+                renderMetrics(data);
+            } catch (err) {
+                metricsStatus.textContent = 'Metrics unavailable';
+                metricsStatus.className = 'status error';
+            }
         }
 
         function updateFromInputs(event) {
@@ -948,6 +1096,8 @@
         ensureSession().then((ok) => {
             if (ok) {
                 loadConfig();
+                loadMetrics();
+                setInterval(loadMetrics, 5000);
             }
         });
     </script>

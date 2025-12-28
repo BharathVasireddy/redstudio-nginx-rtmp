@@ -45,6 +45,10 @@ sudo ./deploy.sh
 - Website: `https://live.<your-domain>/`
 - HLS: `https://live.<your-domain>/hls/stream.m3u8`
 
+## 7b) Server Health (optional)
+
+- Open `https://live.<your-domain>/admin/` to see CPU, memory, disk, and network metrics.
+
 ## 8) GitHub Actions (optional)
 
 If you want auto-deploy on every push to `main`, set these GitHub Secrets:

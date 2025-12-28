@@ -2,6 +2,7 @@
 import json
 import os
 import secrets
+import shutil
 import subprocess
 import time
 import urllib.request
@@ -30,6 +31,8 @@ CONTROL_URL = os.environ.get(
 SESSION_COOKIE = os.environ.get("ADMIN_SESSION_COOKIE", "rs_admin")
 SESSION_TTL = int(os.environ.get("ADMIN_SESSION_TTL", "86400"))
 SESSIONS: Dict[str, Dict[str, object]] = {}
+CPU_SAMPLE: Optional[Tuple[int, int, float]] = None
+NET_SAMPLE: Optional[Tuple[int, int, float]] = None
 
 
 def now_ts() -> int:
@@ -83,6 +86,117 @@ def save_config(payload: dict) -> None:
 
 def load_ingest_key() -> str:
     return str(load_config().get("ingest_key", "")).strip()
+
+
+def read_metrics() -> dict:
+    global CPU_SAMPLE, NET_SAMPLE
+    if os.name != "posix" or not Path("/proc/stat").exists():
+        return {"supported": False}
+
+    metrics: Dict[str, object] = {"supported": True}
+    now = time.time()
+
+    # CPU usage
+    try:
+        with open("/proc/stat", "r", encoding="utf-8") as handle:
+            line = handle.readline()
+        parts = line.split()
+        values = [int(v) for v in parts[1:]]
+        total = sum(values)
+        idle = values[3] + (values[4] if len(values) > 4 else 0)
+        usage_pct = None
+        if CPU_SAMPLE:
+            prev_total, prev_idle, prev_ts = CPU_SAMPLE
+            total_delta = total - prev_total
+            idle_delta = idle - prev_idle
+            if total_delta > 0:
+                usage_pct = max(0.0, min(100.0, (1 - idle_delta / total_delta) * 100))
+        CPU_SAMPLE = (total, idle, now)
+        metrics["cpu"] = {"usage_pct": usage_pct}
+    except Exception:
+        metrics["cpu"] = {"usage_pct": None}
+
+    # Memory
+    mem_total = None
+    mem_available = None
+    try:
+        with open("/proc/meminfo", "r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("MemTotal:"):
+                    mem_total = int(line.split()[1])
+                elif line.startswith("MemAvailable:"):
+                    mem_available = int(line.split()[1])
+                if mem_total and mem_available:
+                    break
+        if mem_total is not None and mem_available is not None:
+            used = mem_total - mem_available
+            metrics["memory"] = {
+                "total_mb": round(mem_total / 1024, 1),
+                "used_mb": round(used / 1024, 1),
+                "used_pct": round((used / mem_total) * 100, 1),
+            }
+    except Exception:
+        metrics["memory"] = {"total_mb": None, "used_mb": None, "used_pct": None}
+
+    # Disk
+    try:
+        usage = shutil.disk_usage(str(ROOT_DIR))
+        total_gb = usage.total / (1024**3)
+        used_gb = usage.used / (1024**3)
+        metrics["disk"] = {
+            "total_gb": round(total_gb, 1),
+            "used_gb": round(used_gb, 1),
+            "used_pct": round((used_gb / total_gb) * 100, 1) if total_gb > 0 else None,
+        }
+    except Exception:
+        metrics["disk"] = {"total_gb": None, "used_gb": None, "used_pct": None}
+
+    # Network
+    try:
+        rx_total = 0
+        tx_total = 0
+        with open("/proc/net/dev", "r", encoding="utf-8") as handle:
+            lines = handle.readlines()[2:]
+        for line in lines:
+            iface, data = line.split(":", 1)
+            iface = iface.strip()
+            if iface == "lo":
+                continue
+            fields = data.split()
+            rx_total += int(fields[0])
+            tx_total += int(fields[8])
+        rx_mbps = None
+        tx_mbps = None
+        if NET_SAMPLE:
+            prev_rx, prev_tx, prev_ts = NET_SAMPLE
+            delta = max(0.001, now - prev_ts)
+            rx_mbps = round(((rx_total - prev_rx) * 8) / (1_000_000 * delta), 2)
+            tx_mbps = round(((tx_total - prev_tx) * 8) / (1_000_000 * delta), 2)
+        NET_SAMPLE = (rx_total, tx_total, now)
+        metrics["network"] = {
+            "rx_mbps": rx_mbps,
+            "tx_mbps": tx_mbps,
+            "rx_bytes": rx_total,
+            "tx_bytes": tx_total,
+        }
+    except Exception:
+        metrics["network"] = {"rx_mbps": None, "tx_mbps": None}
+
+    # Uptime + loadavg
+    try:
+        with open("/proc/uptime", "r", encoding="utf-8") as handle:
+            uptime_sec = float(handle.read().split()[0])
+        metrics["uptime_sec"] = int(uptime_sec)
+    except Exception:
+        metrics["uptime_sec"] = None
+
+    try:
+        load = os.getloadavg()
+        metrics["loadavg"] = [round(v, 2) for v in load]
+    except Exception:
+        metrics["loadavg"] = None
+
+    return metrics
 
 
 def parse_plain_credentials() -> Optional[Tuple[str, str]]:
@@ -207,6 +321,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self._require_auth():
                 return
             self._send_json({"ingest_key": load_ingest_key()})
+            return
+        if parsed.path == "/api/metrics":
+            if not self._require_auth():
+                return
+            self._send_json(read_metrics())
             return
         self._send_json({"error": "not found"}, status=404)
 
