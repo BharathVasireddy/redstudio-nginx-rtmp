@@ -500,6 +500,30 @@
     </header>
 
     <main class="container">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h1 class="card-title">Ingest Settings</h1>
+                <p class="card-subtitle">Use this URL and key in OBS or any encoder.</p>
+            </div>
+            <div class="card-body">
+                <div class="platform-fields">
+                    <div class="field">
+                        <label>RTMP Server URL</label>
+                        <input id="ingestUrl" readonly>
+                    </div>
+                    <div class="field">
+                        <label>Stream Key</label>
+                        <input id="ingestKey" type="password" placeholder="Generate or enter a key">
+                    </div>
+                </div>
+                <div class="platform-controls" style="margin-top: 1rem;">
+                    <button class="btn btn-secondary" id="generateKeyBtn" type="button">Generate Key</button>
+                    <button class="btn btn-secondary" id="copyKeyBtn" type="button">Copy Key</button>
+                    <button class="btn btn-secondary" id="toggleKeyBtn" type="button">Show Key</button>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h1 class="card-title">Multistream Destinations</h1>
@@ -533,6 +557,11 @@
         const toastContainer = document.getElementById('toastContainer');
         const reconnectToggle = document.getElementById('reconnectToggle');
         const logoutBtn = document.getElementById('logoutBtn');
+        const ingestUrlInput = document.getElementById('ingestUrl');
+        const ingestKeyInput = document.getElementById('ingestKey');
+        const generateKeyBtn = document.getElementById('generateKeyBtn');
+        const copyKeyBtn = document.getElementById('copyKeyBtn');
+        const toggleKeyBtn = document.getElementById('toggleKeyBtn');
 
         const defaultDestinations = [
             {
@@ -572,7 +601,18 @@
             }
         ];
 
-        let state = { destinations: [] };
+        let state = { destinations: [], ingest_key: '' };
+
+        function getIngestUrl() {
+            const host = window.location.hostname;
+            if (host.startsWith('live.')) {
+                return `rtmp://ingest.${host.slice(5)}/ingest`;
+            }
+            if (host.startsWith('ingest.')) {
+                return `rtmp://${host}/ingest`;
+            }
+            return `rtmp://ingest.${host}/ingest`;
+        }
 
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
@@ -646,8 +686,30 @@
             return merged;
         }
 
+        function generateKey() {
+            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+            const bytes = new Uint8Array(24);
+            window.crypto.getRandomValues(bytes);
+            return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+        }
+
+        async function copyToClipboard(value) {
+            try {
+                await navigator.clipboard.writeText(value);
+                showToast('Copied to clipboard', 'success');
+            } catch (err) {
+                showToast('Copy failed', 'error');
+            }
+        }
+
         function render() {
             listEl.innerHTML = '';
+            if (ingestUrlInput) {
+                ingestUrlInput.value = getIngestUrl();
+            }
+            if (ingestKeyInput) {
+                ingestKeyInput.value = state.ingest_key || '';
+            }
             state.destinations.forEach((dest, index) => {
                 const row = document.createElement('div');
                 row.className = `platform-row${dest.enabled ? ' is-enabled' : ''}`;
@@ -724,6 +786,9 @@
                     return;
                 }
                 state = await res.json();
+                if (!state.ingest_key) {
+                    state.ingest_key = '';
+                }
                 state.destinations = mergeDefaults(state.destinations);
                 render();
             } catch (err) {
@@ -835,6 +900,38 @@
         listEl.addEventListener('input', updateFromInputs);
         listEl.addEventListener('change', updateFromInputs);
         listEl.addEventListener('click', removeItem);
+        if (ingestKeyInput) {
+            ingestKeyInput.addEventListener('input', (event) => {
+                state.ingest_key = event.target.value;
+            });
+        }
+        if (generateKeyBtn) {
+            generateKeyBtn.addEventListener('click', () => {
+                const key = generateKey();
+                state.ingest_key = key;
+                if (ingestKeyInput) {
+                    ingestKeyInput.value = key;
+                }
+                showToast('New stream key generated', 'success');
+            });
+        }
+        if (copyKeyBtn) {
+            copyKeyBtn.addEventListener('click', () => {
+                if (ingestKeyInput) {
+                    copyToClipboard(ingestKeyInput.value);
+                }
+            });
+        }
+        if (toggleKeyBtn) {
+            toggleKeyBtn.addEventListener('click', () => {
+                if (!ingestKeyInput) {
+                    return;
+                }
+                const isHidden = ingestKeyInput.type === 'password';
+                ingestKeyInput.type = isHidden ? 'text' : 'password';
+                toggleKeyBtn.textContent = isHidden ? 'Hide Key' : 'Show Key';
+            });
+        }
 
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async () => {

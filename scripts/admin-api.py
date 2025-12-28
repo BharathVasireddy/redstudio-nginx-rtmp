@@ -55,16 +55,33 @@ def load_config() -> dict:
     if not CONFIG_PATH.exists() and DEFAULT_CONFIG.exists():
         CONFIG_PATH.write_text(DEFAULT_CONFIG.read_text(encoding="utf-8"), encoding="utf-8")
     if not CONFIG_PATH.exists():
-        return {"destinations": []}
-    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        return {"destinations": [], "ingest_key": ""}
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    if "ingest_key" not in payload:
+        payload["ingest_key"] = ""
+    return payload
 
 
 def save_config(payload: dict) -> None:
+    existing = load_config()
     destinations = payload.get("destinations", [])
     if not isinstance(destinations, list):
         raise ValueError("destinations must be a list")
     cleaned = [sanitize_destination(d) for d in destinations if isinstance(d, dict)]
-    CONFIG_PATH.write_text(json.dumps({"destinations": cleaned}, indent=2), encoding="utf-8")
+    ingest_key = payload.get("ingest_key", existing.get("ingest_key", ""))
+    if ingest_key is None:
+        ingest_key = ""
+    ingest_key = str(ingest_key).strip()
+    if any(ch in ingest_key for ch in ["\n", "\r", ";", " "]):
+        ingest_key = ""
+    CONFIG_PATH.write_text(
+        json.dumps({"destinations": cleaned, "ingest_key": ingest_key}, indent=2),
+        encoding="utf-8",
+    )
+
+
+def load_ingest_key() -> str:
+    return str(load_config().get("ingest_key", "")).strip()
 
 
 def parse_plain_credentials() -> Optional[Tuple[str, str]]:
@@ -185,6 +202,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self._send_json(load_config())
             return
+        if parsed.path == "/api/ingest":
+            if not self._require_auth():
+                return
+            self._send_json({"ingest_key": load_ingest_key()})
+            return
         self._send_json({"error": "not found"}, status=404)
 
     def do_POST(self) -> None:
@@ -226,6 +248,43 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"status": "ok"})
             except Exception as exc:
                 self._send_json({"error": str(exc)}, status=400)
+            return
+        if parsed.path == "/api/ingest":
+            try:
+                if not self._require_auth():
+                    return
+                payload = self._read_json()
+                current = load_config()
+                save_config(
+                    {
+                        "destinations": current.get("destinations", []),
+                        "ingest_key": payload.get("ingest_key", ""),
+                    }
+                )
+                self._send_json({"status": "ok"})
+            except Exception as exc:
+                self._send_json({"error": str(exc)}, status=400)
+            return
+        if parsed.path == "/api/publish":
+            params = parse_qs(parsed.query)
+            length = int(self.headers.get("Content-Length", 0))
+            if length and not params:
+                body = self.rfile.read(length).decode("utf-8")
+                params = parse_qs(body)
+            key = ""
+            if "key" in params:
+                key = params.get("key", [""])[0]
+            else:
+                key = params.get("name", [""])[0]
+            key = str(key).strip()
+            stored = load_ingest_key()
+            if not stored:
+                self._send_json({"status": "ok"})
+                return
+            if key == stored:
+                self._send_json({"status": "ok"})
+                return
+            self._send_json({"error": "forbidden"}, status=403)
             return
         if parsed.path == "/api/restream/apply":
             try:

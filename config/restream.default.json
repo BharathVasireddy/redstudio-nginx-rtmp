@@ -1,4 +1,5 @@
 {
+  "ingest_key": "",
   "destinations": [
     {
       "id": "youtube",
