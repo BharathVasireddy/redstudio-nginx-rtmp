@@ -128,8 +128,8 @@
         /* Control bar styling */
         .plyr__controls {
             background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
-            height: 56px;
-            padding: 0 20px 12px 20px;
+            height: 60px;
+            padding: 0 24px 18px 24px;
             display: flex;
             align-items: center;
         }
@@ -220,7 +220,7 @@
         .stream-stats-wrapper {
             width: 100%;
             background: var(--bg-primary);
-            padding: 0 1rem 1.5rem;
+            padding: 0.75rem 1rem 1.5rem;
         }
 
         .stream-stats {
@@ -228,52 +228,59 @@
             margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 2.5rem;
-            padding: 1.25rem 1.5rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            text-align: center;
-            flex-wrap: wrap;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            gap: 3rem;
+            padding: 0.75rem 0.5rem;
         }
 
         .stat-item {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            min-width: 140px;
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.5rem;
         }
 
         .stat-label {
-            font-size: 0.7rem;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
         }
 
         .stat-value {
-            font-size: 1.05rem;
+            font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-primary);
         }
 
         .stat-hint {
             font-size: 0.75rem;
-            color: var(--text-secondary);
+            color: var(--text-muted);
+            margin-left: 0.25rem;
         }
 
         @media (max-width: 768px) {
             .stream-stats-wrapper {
-                padding: 0 0 1rem;
+                padding: 0.5rem 1rem 1rem;
             }
 
             .stream-stats {
-                border-radius: 0;
-                border-left: none;
-                border-right: none;
-                box-shadow: none;
+                gap: 2rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .stat-item {
+                gap: 0.4rem;
+            }
+
+            .stat-label {
+                font-size: 0.8rem;
+            }
+
+            .stat-value {
+                font-size: 0.8rem;
+            }
+
+            .stat-hint {
+                font-size: 0.7rem;
             }
         }
 
@@ -500,16 +507,8 @@
             }
 
             .plyr__controls {
-                height: 48px;
-                padding: 0 16px 10px 16px;
-            }
-
-            .stream-stats {
-                gap: 1.5rem;
-            }
-
-            .stat-item {
-                min-width: 120px;
+                height: 56px;
+                padding: 0 20px 14px 20px;
             }
 
             /* Ensure overlays center properly on mobile */
@@ -592,14 +591,14 @@
         <div class="stream-stats-wrapper">
         <div class="stream-stats" id="streamStats">
             <div class="stat-item">
-                <div class="stat-label">Viewers</div>
-                <div class="stat-value" id="viewerCount">—</div>
-                <div class="stat-hint" id="viewerHint">Last 30s</div>
+                <span class="stat-label">Viewers:</span>
+                <span class="stat-value" id="viewerCount">—</span>
+                <span class="stat-hint" id="viewerHint">(Last 30s)</span>
             </div>
             <div class="stat-item">
-                <div class="stat-label">Live Since</div>
-                <div class="stat-value" id="liveSince">—</div>
-                <div class="stat-hint" id="liveSinceHint">Local time</div>
+                <span class="stat-label">Live since:</span>
+                <span class="stat-value" id="liveSince">—</span>
+                <span class="stat-hint" id="liveSinceHint">(Local time)</span>
             </div>
         </div>
         </div>
