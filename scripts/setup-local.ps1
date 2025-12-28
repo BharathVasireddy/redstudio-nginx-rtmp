@@ -24,6 +24,7 @@ function Die {
 }
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$script:PythonCached = $null
 
 function Get-PythonCmd {
     $cmd = Get-Command python3 -ErrorAction SilentlyContinue
@@ -35,12 +36,27 @@ function Get-PythonCmd {
     return $null
 }
 
+function Find-PythonExe {
+    $candidates = @(
+        Join-Path $env:LocalAppData "Programs\Python",
+        "$env:ProgramFiles\Python",
+        "${env:ProgramFiles(x86)}\Python"
+    )
+    foreach ($root in $candidates) {
+        if (-not (Test-Path $root)) { continue }
+        $exe = Get-ChildItem -Path $root -Recurse -Filter "python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($exe) { return @{ Exe = $exe.FullName; Args = @() } }
+    }
+    return $null
+}
+
 function Install-Python {
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         Write-Log "Installing Python with winget..."
         try {
-            winget install -e --id Python.Python.3 --accept-source-agreements --accept-package-agreements
-            return $true
+            & winget install -e --id Python.Python.3 --accept-source-agreements --accept-package-agreements
+            if ($LASTEXITCODE -eq 0) { return $true }
+            Write-Warn "winget install failed with exit code $LASTEXITCODE."
         } catch {
             Write-Warn "winget install failed."
         }
@@ -48,8 +64,9 @@ function Install-Python {
     if (Get-Command choco -ErrorAction SilentlyContinue) {
         Write-Log "Installing Python with chocolatey..."
         try {
-            choco install -y python
-            return $true
+            & choco install -y python
+            if ($LASTEXITCODE -eq 0) { return $true }
+            Write-Warn "choco install failed with exit code $LASTEXITCODE."
         } catch {
             Write-Warn "choco install failed."
         }
@@ -78,13 +95,18 @@ function Install-Python {
 }
 
 function Ensure-Python {
+    if ($script:PythonCached) { return $script:PythonCached }
     $py = Get-PythonCmd
-    if ($py) { return $py }
+    if ($py) { $script:PythonCached = $py; return $py }
+    $py = Find-PythonExe
+    if ($py) { $script:PythonCached = $py; return $py }
     Write-Warn "python not found. Attempting automatic install..."
     if (Install-Python) {
         Start-Sleep -Seconds 2
         $py = Get-PythonCmd
-        if ($py) { return $py }
+        if ($py) { $script:PythonCached = $py; return $py }
+        $py = Find-PythonExe
+        if ($py) { $script:PythonCached = $py; return $py }
     }
     return $null
 }
@@ -204,6 +226,11 @@ function Stop-Port8080 {
             foreach ($pid in $pids) {
                 Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
             }
+            Start-Sleep -Seconds 1
+            $pids = @(Get-PortPids -Port 8080)
+            foreach ($pid in $pids) {
+                cmd /c "taskkill /F /PID $pid /T" > $null 2>&1
+            }
         } else {
             Get-Process -Name nginx -ErrorAction SilentlyContinue | Stop-Process -Force
         }
@@ -228,7 +255,12 @@ function Stop-Port9090 {
         Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
     }
     Start-Sleep -Seconds 1
-    $pids = Get-PortPids -Port 9090
+    $pids = @(Get-PortPids -Port 9090)
+    foreach ($pid in $pids) {
+        cmd /c "taskkill /F /PID $pid /T" > $null 2>&1
+    }
+    Start-Sleep -Seconds 1
+    $pids = @(Get-PortPids -Port 9090)
     if ($pids -and $pids.Count -gt 0) {
         Die "Port 9090 is still in use. Stop the other service and retry."
     }
