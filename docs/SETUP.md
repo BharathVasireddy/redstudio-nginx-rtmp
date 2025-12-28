@@ -61,7 +61,16 @@ If you want auto-deploy on every push to `main`, set these GitHub Secrets:
 
 ## Local Usage (macOS)
 
-### 1) Install dependencies
+### 1) Clone the repository
+
+```bash
+git clone https://github.com/BharathVasireddy/redstudio-nginx-rtmp.git
+cd redstudio-nginx-rtmp
+```
+
+If you don’t have Git, install it first or download the ZIP from GitHub and extract it.
+
+### 2) Install dependencies
 
 ```bash
 # Install Homebrew if you don't have it
@@ -71,19 +80,19 @@ If you want auto-deploy on every push to `main`, set these GitHub Secrets:
 brew install nginx python
 ```
 
-### 2) Start the server
+### 3) Start the server
 
 ```bash
 ./stream-start.sh
 ```
 
-### 3) Stream locally
+### 4) Stream locally
 
 - Dashboard: `http://localhost:8080/`
 - Server: `rtmp://localhost/ingest`
 - Stream key: any value (local does not enforce ingest keys by default)
 
-### 4) Stop the server
+### 5) Stop the server
 
 ```bash
 ./stream-stop.sh
@@ -91,26 +100,35 @@ brew install nginx python
 
 ## Local Usage (Linux)
 
-### 1) Install dependencies
+### 1) Clone the repository
+
+```bash
+git clone https://github.com/BharathVasireddy/redstudio-nginx-rtmp.git
+cd redstudio-nginx-rtmp
+```
+
+If you don’t have Git, install it first (e.g., `sudo apt-get install -y git`).
+
+### 2) Install dependencies
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y nginx python3
 ```
 
-### 2) Start the server
+### 3) Start the server
 
 ```bash
 ./stream-start.sh
 ```
 
-### 3) Stream locally
+### 4) Stream locally
 
 - Dashboard: `http://localhost:8080/`
 - Server: `rtmp://localhost/ingest`
 - Stream key: any value (local does not enforce ingest keys by default)
 
-### 4) Stop the server
+### 5) Stop the server
 
 ```bash
 ./stream-stop.sh
@@ -118,11 +136,23 @@ sudo apt-get install -y nginx python3
 
 ## Local Usage (Windows)
 
-### 1) Install dependencies
+### 1) Clone the repository
+
+- Install Git for Windows (https://git-scm.com/download/win)
+- In Command Prompt or PowerShell:
+
+```
+git clone https://github.com/BharathVasireddy/redstudio-nginx-rtmp.git
+cd redstudio-nginx-rtmp
+```
+
+If you prefer, download the ZIP from GitHub and extract it.
+
+### 2) Install dependencies
 
 - No additional install required (nginx is bundled as `nginx.exe`).
 
-### 2) Start the server
+### 3) Start the server
 
 Double-click:
 
@@ -130,13 +160,13 @@ Double-click:
 stream-start.bat
 ```
 
-### 3) Stream locally
+### 4) Stream locally
 
 - Dashboard: `http://localhost:8080/`
 - Server: `rtmp://localhost/ingest`
 - Stream key: any value (local does not enforce ingest keys by default)
 
-### 4) Stop the server
+### 5) Stop the server
 
 ```
 stream-stop.bat
