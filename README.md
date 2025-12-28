@@ -9,6 +9,14 @@ Minimal live streaming server built on the nginx-rtmp-module.
 - Watch URL: `http://<server-ip>/` (port 80) or `http://<server-ip>:8080/`
 - HLS playlist: `http://<server-ip>/hls/stream.m3u8`
 
+## Quick Checklist (Before Going Live)
+
+- In `/admin`, set a strong **Ingest Key** and click **Save & Apply**.
+- OBS → Server: `rtmp://ingest.<your-domain>/ingest`
+- OBS → Stream Key: the **Ingest Key** from `/admin`
+- Cloudflare: `ingest.*` is **DNS only** (grey cloud)
+- Oracle firewall: ports `1935`, `80`, `8080` are open
+
 ## OBS Settings
 
 1) Service: `Custom`
