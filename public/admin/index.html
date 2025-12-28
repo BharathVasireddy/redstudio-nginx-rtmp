@@ -188,13 +188,21 @@
         .remove-btn {
             border: 0;
             background: transparent;
-            color: rgba(255, 255, 255, 0.5);
+            color: #ef4444;
             cursor: pointer;
             padding: 0.2rem 0;
+            display: inline-flex;
+            align-items: center;
         }
 
         .remove-btn:hover {
-            color: rgba(239, 68, 68, 0.9);
+            color: #f87171;
+        }
+
+        .remove-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
         }
 
         .hint {
@@ -336,7 +344,11 @@
                                 <span class="slider"></span>
                             </label>
                             <span class="toggle-label">Enabled</span>
-                            <button class="remove-btn" data-index="${index}" data-name="${dest.name || 'this destination'}">Delete</button>
+                            <button class="remove-btn" data-index="${index}" data-name="${dest.name || 'this destination'}" aria-label="Delete" title="Delete">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 `;
