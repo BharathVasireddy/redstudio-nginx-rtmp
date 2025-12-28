@@ -19,7 +19,8 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
 CONFIG_PATH = DATA_DIR / "restream.json"
 DEFAULT_CONFIG = ROOT_DIR / "config" / "restream.default.json"
-APPLY_SCRIPT = ROOT_DIR / "scripts" / "restream-apply.sh"
+IS_WINDOWS = os.name == "nt"
+APPLY_SCRIPT = ROOT_DIR / "scripts" / ("restream-apply.ps1" if IS_WINDOWS else "restream-apply.sh")
 STREAM_APP = os.environ.get("STREAM_APP", "live")
 STREAM_NAME = os.environ.get("STREAM_NAME", "stream")
 CONTROL_URL = os.environ.get(
@@ -294,7 +295,21 @@ class Handler(BaseHTTPRequestHandler):
                 env = os.environ.copy()
                 if query.get("restart", ["0"])[0] == "1":
                     env["RESTART_NGINX"] = "1"
-                subprocess.run(["bash", str(APPLY_SCRIPT)], check=True, env=env)
+                if IS_WINDOWS:
+                    subprocess.run(
+                        [
+                            "powershell",
+                            "-NoProfile",
+                            "-ExecutionPolicy",
+                            "Bypass",
+                            "-File",
+                            str(APPLY_SCRIPT),
+                        ],
+                        check=True,
+                        env=env,
+                    )
+                else:
+                    subprocess.run(["bash", str(APPLY_SCRIPT)], check=True, env=env)
                 self._send_json({"status": "applied"})
             except subprocess.CalledProcessError as exc:
                 self._send_json({"error": f"apply failed: {exc}"}, status=500)

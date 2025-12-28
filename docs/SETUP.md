@@ -260,6 +260,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup-local.ps1 -For
 
 If the admin UI does not load, the script will try to install Python via `winget`/`choco`. If those are missing, it will download the official installer via PowerShell. If it still fails, install Python 3 from https://www.python.org/downloads/ and disable the Windows Store "App execution aliases" for python.
 
+If you enable YouTube (or other restreams) on Windows and apply fails, make sure Python is installed and `nginx.exe` is present in the repo root.
+
 Or double-click:
 
 ```
