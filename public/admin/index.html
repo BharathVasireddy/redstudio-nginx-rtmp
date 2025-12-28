@@ -550,22 +550,125 @@
             opacity: 0.3;
         }
 
-        /* Preview Player */
-        .preview-container {
-            position: relative;
-            width: 100%;
+        /* Floating Preview Player */
+        .floating-player {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 320px;
             background: #000;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            aspect-ratio: 16/9;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: all 0.3s ease;
         }
 
-        .preview-container .plyr {
+        .floating-player.minimized {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .floating-player.minimized .player-content {
+            display: none;
+        }
+
+        .floating-player.minimized .player-header {
+            display: none;
+        }
+
+        .floating-player.minimized .minimized-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--accent) 0%, #b91c1c 100%);
+        }
+
+        .minimized-icon {
+            display: none;
+            color: white;
+        }
+
+        .minimized-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .player-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: rgba(15, 15, 15, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: move;
+        }
+
+        .player-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .live-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(220, 38, 38, 0.6);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .player-controls {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .player-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            padding: 0.25rem;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+        }
+
+        .player-btn:hover {
+            color: #fff;
+        }
+
+        .player-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .player-content {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+        }
+
+        .player-content .plyr {
             width: 100%;
             height: 100%;
         }
 
-        .preview-container .plyr__video-wrapper {
+        .player-content .plyr__video-wrapper {
             background: #000;
         }
 
@@ -577,8 +680,8 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
             z-index: 10;
         }
 
@@ -587,14 +690,22 @@
         }
 
         .preview-offline svg {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 0.75rem;
+            width: 32px;
+            height: 32px;
+            margin-bottom: 0.5rem;
             opacity: 0.4;
         }
 
         :root {
             --plyr-color-main: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .floating-player {
+                width: 280px;
+                bottom: 1rem;
+                right: 1rem;
+            }
         }
 
         /* Responsive */
@@ -729,25 +840,6 @@
 
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-header">
-                <h1 class="card-title">Stream Preview</h1>
-                <p class="card-subtitle">Monitor your live stream while managing settings.</p>
-            </div>
-            <div class="card-body">
-                <div class="preview-container">
-                    <video id="previewPlayer" playsinline></video>
-                    <div class="preview-offline" id="previewOffline">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="23 7 16 12 23 17 23 7" />
-                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                        </svg>
-                        <span>Stream Offline</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <div class="card-header">
                 <h1 class="card-title">Embed Options</h1>
                 <p class="card-subtitle">Choose how to embed the live stream on external sites.</p>
             </div>
@@ -823,6 +915,45 @@
     </main>
 
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Floating Preview Player -->
+    <div class="floating-player" id="floatingPlayer">
+        <div class="minimized-icon" id="minimizedIcon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7" />
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+        </div>
+        <div class="player-header" id="playerHeader">
+            <div class="player-title">
+                <span class="live-indicator"></span>
+                Live Preview
+            </div>
+            <div class="player-controls">
+                <button class="player-btn" id="minimizeBtn" title="Minimize">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <button class="player-btn" id="closePlayerBtn" title="Close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="player-content">
+            <video id="previewPlayer" playsinline></video>
+            <div class="preview-offline" id="previewOffline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span>Stream Offline</span>
+            </div>
+        </div>
+    </div>
 
     <script>
         const apiBase = '/admin/api';
@@ -960,6 +1091,39 @@
             }
             embedStatus.textContent = message;
             embedStatus.className = `status ${type}`;
+        }
+
+        function updateEmbedUi() {
+            if (!embedType) {
+                return;
+            }
+
+            const isHls = embedType.value === 'hls';
+            const isResponsive = embedResponsive && embedResponsive.checked;
+            const disableSizing = isHls || isResponsive;
+
+            if (embedWidth) {
+                embedWidth.disabled = disableSizing;
+            }
+            if (embedHeight) {
+                embedHeight.disabled = disableSizing;
+            }
+            if (embedControls) {
+                embedControls.disabled = isHls;
+            }
+            if (embedBadge) {
+                embedBadge.disabled = isHls;
+            }
+            if (embedStats) {
+                embedStats.disabled = isHls;
+            }
+            if (embedMuted) {
+                embedMuted.disabled = isHls;
+            }
+            if (copyEmbedBtn) {
+                copyEmbedBtn.textContent = isHls ? 'Copy HLS URL' : 'Copy Embed Code';
+            }
+            buildEmbedCode();
         }
 
         function showToast(message, type = 'info') {
@@ -1353,6 +1517,37 @@
                 }
             });
         }
+
+        const embedInputs = [
+            embedType,
+            embedWidth,
+            embedHeight,
+            embedResponsive,
+            embedControls,
+            embedBadge,
+            embedStats,
+            embedMuted
+        ];
+        embedInputs.forEach((input) => {
+            if (!input) {
+                return;
+            }
+            const eventName = input.tagName === 'SELECT' || input.type === 'checkbox' ? 'change' : 'input';
+            input.addEventListener(eventName, () => {
+                updateEmbedUi();
+                setEmbedStatus('', 'info');
+            });
+        });
+
+        if (copyEmbedBtn) {
+            copyEmbedBtn.addEventListener('click', () => {
+                if (!embedCode || !embedCode.textContent) {
+                    return;
+                }
+                copyToClipboard(embedCode.textContent);
+                setEmbedStatus('Copied.', 'success');
+            });
+        }
         // Toggle ingest key visibility
         const toggleIngestKey = document.getElementById('toggleIngestKey');
         if (toggleIngestKey && ingestKeyInput) {
@@ -1399,9 +1594,13 @@
             });
         }
 
-        // Preview Player
+        // Floating Preview Player
         let previewPlayer = null;
+        const floatingPlayer = document.getElementById('floatingPlayer');
         const previewOffline = document.getElementById('previewOffline');
+        const minimizeBtn = document.getElementById('minimizeBtn');
+        const closePlayerBtn = document.getElementById('closePlayerBtn');
+        const minimizedIcon = document.getElementById('minimizedIcon');
         const STREAM_URL = '/hls/stream.m3u8';
 
         function initPreviewPlayer() {
@@ -1409,7 +1608,7 @@
             if (!videoElement) return;
 
             previewPlayer = new Plyr(videoElement, {
-                controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+                controls: ['play', 'mute', 'volume', 'fullscreen'],
                 autoplay: false,
                 muted: true,
                 hideControls: true,
@@ -1455,11 +1654,76 @@
             });
         }
 
+        // Floating player controls
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', () => {
+                floatingPlayer.classList.toggle('minimized');
+            });
+        }
+
+        if (closePlayerBtn) {
+            closePlayerBtn.addEventListener('click', () => {
+                floatingPlayer.style.display = 'none';
+            });
+        }
+
+        if (minimizedIcon) {
+            minimizedIcon.addEventListener('click', () => {
+                floatingPlayer.classList.remove('minimized');
+            });
+        }
+
+        // Make player draggable
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        const playerHeader = document.getElementById('playerHeader');
+
+        if (playerHeader) {
+            playerHeader.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+        }
+
+        function dragStart(e) {
+            if (floatingPlayer.classList.contains('minimized')) return;
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            isDragging = true;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+                xOffset = currentX;
+                yOffset = currentY;
+                setTranslate(currentX, currentY, floatingPlayer);
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+        }
+
         ensureSession().then((ok) => {
             if (ok) {
                 loadConfig();
                 loadMetrics();
                 setInterval(loadMetrics, 5000);
+                updateEmbedUi();
                 initPreviewPlayer();
             }
         });
