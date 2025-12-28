@@ -259,6 +259,10 @@
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
         }
 
         .live-dot {
@@ -267,6 +271,11 @@
             border-radius: 999px;
             background: var(--primary);
             box-shadow: 0 0 10px rgba(220, 38, 38, 0.7);
+        }
+
+        .video-js.vjs-user-active ~ .live-badge {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .buffering-dot {
