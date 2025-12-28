@@ -8,14 +8,26 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: ${{ secrets.ORACLE_HOST }}
+            username: ${{ secrets.ORACLE_USER }}
+            key: ${{ secrets.ORACLE_SSH_KEY }}
+            passphrase: ${{ secrets.ORACLE_SSH_KEY_PASSPHRASE }}
+          - host: ${{ secrets.ORACLE_HOST_2 }}
+            username: ${{ secrets.ORACLE_USER_2 }}
+            key: ${{ secrets.ORACLE_SSH_KEY_2 }}
+            passphrase: ${{ secrets.ORACLE_SSH_KEY_PASSPHRASE_2 }}
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.ORACLE_HOST }}
-          username: ${{ secrets.ORACLE_USER }}
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          passphrase: ${{ secrets.ORACLE_SSH_KEY_PASSPHRASE }}
+          host: ${{ matrix.host }}
+          username: ${{ matrix.username }}
+          key: ${{ matrix.key }}
+          passphrase: ${{ matrix.passphrase }}
           envs: ADMIN_USER,ADMIN_PASSWORD
           script: |
             cd /var/www/nginx-rtmp-module
