@@ -83,6 +83,30 @@ sudo ./setup-oracle.sh
   - Ensure the stream key matches the **Ingest Settings** in `/admin`.
   - Confirm Cloudflare for `ingest.*` is **DNS only** (grey cloud).
   - Check Oracle firewall allows port `1935`.
+- OBS shows "Already publishing":
+  - Only one encoder can publish at a time. Stop the other encoder or wait 10–30s.
+- Stream shows on site but not on YouTube:
+  - Toggle YouTube on in `/admin`, then **Save & Apply** (restart is required).
+  - Wait 30–60 seconds for YouTube to show “Receiving.”
+- YouTube keeps receiving after toggle off:
+  - Changes take effect on reconnect. Use **Save & Apply** with restart enabled.
+- Stream is reconnecting/buffering:
+  - Reduce bitrate (e.g., 6000 → 3500 kbps).
+  - Use a stable encoder preset and CBR if possible.
+  - Ensure server CPU is not saturated (Oracle Free is limited).
+- Stream appears but is pixelated:
+  - Increase bitrate or adjust encoder settings (keyframe interval 2s, CBR).
+- Audio muted on refresh:
+  - Mobile browsers require user interaction. Tap Play to unmute.
+- Mobile autoplay not working:
+  - Expected behavior on iOS/Android. Use the Play button.
+- Admin login issues:
+  - Use credentials from `data/admin.credentials`.
+  - Hard refresh `/admin` after deploy.
+- Apply shows HTTP 520/521:
+  - The server is restarting. Wait a few seconds; the UI will recover.
+- /stat shows 0 clients:
+  - Ensure `worker_processes 1` (default in this repo).
 - Stream shows on site but not on YouTube:
   - Toggle YouTube on in `/admin`, then **Save & Apply**.
   - Wait 30–60 seconds for YouTube to show “Receiving.”
