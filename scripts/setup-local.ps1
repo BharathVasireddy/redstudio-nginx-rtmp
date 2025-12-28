@@ -27,11 +27,11 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 function Get-PythonCmd {
     $cmd = Get-Command python3 -ErrorAction SilentlyContinue
-    if ($cmd) { return @{ Exe = $cmd.Path; Args = @() } }
+    if ($cmd -and $cmd.Path -notmatch "WindowsApps") { return @{ Exe = $cmd.Path; Args = @() } }
     $cmd = Get-Command python -ErrorAction SilentlyContinue
-    if ($cmd) { return @{ Exe = $cmd.Path; Args = @() } }
+    if ($cmd -and $cmd.Path -notmatch "WindowsApps") { return @{ Exe = $cmd.Path; Args = @() } }
     $cmd = Get-Command py -ErrorAction SilentlyContinue
-    if ($cmd) { return @{ Exe = $cmd.Path; Args = @("-3") } }
+    if ($cmd -and $cmd.Path -notmatch "WindowsApps") { return @{ Exe = $cmd.Path; Args = @("-3") } }
     return $null
 }
 
@@ -210,14 +210,15 @@ function Start-AdminApi {
     }
     $py = Get-PythonCmd
     if (-not $py) {
-        Write-Warn "python not found; admin API will not start."
+        Write-Warn "python not found; admin API will not start. Install Python from python.org and re-run."
         return
     }
-    $logFile = Join-Path $Root "logs\admin-api.log"
+    $logOut = Join-Path $Root "logs\admin-api.out.log"
+    $logErr = Join-Path $Root "logs\admin-api.err.log"
     $pidFile = Join-Path $Root "logs\admin-api.pid"
     $env:PYTHONUNBUFFERED = "1"
     $proc = Start-Process -FilePath $py.Exe -ArgumentList ($py.Args + @((Join-Path $Root "scripts\admin-api.py"))) `
-        -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $logFile -RedirectStandardError $logFile -PassThru
+        -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $logOut -RedirectStandardError $logErr -PassThru
     $proc.Id | Out-File -FilePath $pidFile -Encoding ASCII -Force
     Start-Sleep -Milliseconds 700
 }

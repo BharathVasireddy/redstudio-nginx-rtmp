@@ -69,6 +69,8 @@ If PowerShell blocks scripts:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup-local.ps1 -ForceStop
 ```
 
+If the admin UI does not load, install Python 3 from https://www.python.org/downloads/ and disable the Windows Store "App execution aliases" for python.
+
 Or run `stream-start.bat`.
 
 Watch at `http://localhost:8080/` and stream to:

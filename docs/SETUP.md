@@ -258,6 +258,8 @@ If PowerShell blocks scripts, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup-local.ps1 -ForceStop
 ```
 
+If the admin UI does not load, install Python 3 from https://www.python.org/downloads/ and disable the Windows Store "App execution aliases" for python.
+
 Or double-click:
 
 ```
