@@ -31,7 +31,7 @@ sudo ./deploy.sh
 
 ## 5) Admin login and ingest key
 
-- Admin UI: `https://live.<your-domain>/admin/`
+- Admin UI: `https://live.<your-domain>/admin/` (or `http://<server-ip>:8080/admin/` before SSL)
 - Credentials: `data/admin.credentials` on the server (or set `ADMIN_USER`/`ADMIN_PASSWORD` in GitHub Secrets).
 - In **Ingest Settings**, generate a stream key and click **Save & Apply**.
 
@@ -42,10 +42,18 @@ sudo ./deploy.sh
 
 ## 7) Player URLs
 
-- Website: `https://live.<your-domain>/`
+- Website: `https://live.<your-domain>/` (or `http://<server-ip>:8080/` before SSL)
 - HLS: `https://live.<your-domain>/hls/stream.m3u8`
 
-## 7b) Server Health (optional)
+## 7b) SSL (optional)
+
+If you use Let's Encrypt, deploy will auto-create `/usr/local/nginx/conf/ssl.d/letsencrypt.conf`
+when there is a single certificate in `/etc/letsencrypt/live`. For multiple certs, set:
+
+- `SSL_CERT_PATH` (e.g. `/etc/letsencrypt/live/live.example.com/fullchain.pem`)
+- `SSL_KEY_PATH` (e.g. `/etc/letsencrypt/live/live.example.com/privkey.pem`)
+
+## 7c) Server Health (optional)
 
 - Open `https://live.<your-domain>/admin/` to see CPU, memory, disk, and network metrics.
 

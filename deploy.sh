@@ -9,6 +9,10 @@ BRANCH="${DEPLOY_BRANCH:-main}"
 NGINX_CONF_PATH="/usr/local/nginx/conf/nginx.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
 FORCE_NGINX_CONF="${FORCE_NGINX_CONF:-0}"
+SSL_CONF_DIR="/usr/local/nginx/conf/ssl.d"
+SSL_CONF_FILE="${SSL_CONF_DIR}/letsencrypt.conf"
+SSL_CERT_PATH="${SSL_CERT_PATH:-}"
+SSL_KEY_PATH="${SSL_KEY_PATH:-}"
 DATA_DIR="${REPO_DIR}/data"
 ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
@@ -94,6 +98,36 @@ elif [ -f "${NGINX_CONF_PATH}" ]; then
 else
     echo "📄 Installing NGINX config..."
     sudo cp "${REPO_DIR}/conf/nginx.conf" "${NGINX_CONF_PATH}"
+fi
+
+# Create SSL include config if a Let's Encrypt cert is present.
+if [ -z "${SSL_CERT_PATH}" ] || [ -z "${SSL_KEY_PATH}" ]; then
+    if [ -d /etc/letsencrypt/live ]; then
+        LE_DIRS=()
+        for dir in /etc/letsencrypt/live/*; do
+            if [ -d "${dir}" ]; then
+                LE_DIRS+=("${dir}")
+            fi
+        done
+        if [ ${#LE_DIRS[@]} -eq 1 ]; then
+            SSL_CERT_PATH="${LE_DIRS[0]}/fullchain.pem"
+            SSL_KEY_PATH="${LE_DIRS[0]}/privkey.pem"
+        fi
+    fi
+fi
+
+if [ -n "${SSL_CERT_PATH}" ] && [ -n "${SSL_KEY_PATH}" ] && [ -f "${SSL_CERT_PATH}" ] && [ -f "${SSL_KEY_PATH}" ]; then
+    sudo mkdir -p "${SSL_CONF_DIR}"
+    if [ ! -f "${SSL_CONF_FILE}" ]; then
+        sudo tee "${SSL_CONF_FILE}" >/dev/null <<EOF
+listen 443 ssl;
+ssl_certificate ${SSL_CERT_PATH};
+ssl_certificate_key ${SSL_KEY_PATH};
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 1d;
+EOF
+    fi
 fi
 
 # Install/update HLS viewer counter timer (server only)
