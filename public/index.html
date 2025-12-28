@@ -168,7 +168,7 @@
         .tap-overlay {
             position: absolute;
             inset: 0;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.2) 100%);
@@ -306,10 +306,6 @@
                 display: block;
             }
 
-            .tap-overlay {
-                display: flex;
-            }
-
             .brand-bar {
                 padding: 0.85rem 1rem;
             }
@@ -333,7 +329,7 @@
         </video>
 
         <div class="tap-overlay hidden" id="tapOverlay">
-            <button class="tap-button" type="button">Tap to Play</button>
+            <button class="tap-button" type="button">Play Live</button>
         </div>
 
         <div class="audio-prompt" id="audioPrompt">
@@ -341,7 +337,7 @@
         </div>
 
         <!-- Offline Overlay -->
-        <div class="offline-overlay" id="offlineOverlay">
+        <div class="offline-overlay hidden" id="offlineOverlay">
             <div class="offline-icon" id="offlineIcon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="23 7 16 12 23 17 23 7" />
@@ -369,6 +365,7 @@
         let player = null;
         let isReconnecting = false;
         let wasReconnecting = false;
+        let consecutiveErrors = 0;
         let lastInitAt = 0;
         let suspendReconnectUntil = 0;
         let toastTimer = null;
@@ -424,6 +421,7 @@
                 setReconnectState(false);
                 hideTapOverlay();
                 applyPreferredAudio();
+                consecutiveErrors = 0;
                 if (player.error()) {
                     player.error(null);
                 }
@@ -435,6 +433,7 @@
 
             player.on('error', () => {
                 console.log('Player error, will retry');
+                consecutiveErrors += 1;
                 scheduleReconnect();
                 showTapOverlay();
             });
@@ -475,7 +474,9 @@
         function setReconnectState(active) {
             isReconnecting = active;
             if (active) {
-                offlineOverlay.classList.remove('hidden');
+                if (consecutiveErrors >= 2) {
+                    offlineOverlay.classList.remove('hidden');
+                }
                 offlineIcon.classList.add('loading');
                 offlineText.textContent = 'Reconnecting';
                 offlineHint.textContent = 'Restoring stream. Tap the video to retry.';
@@ -483,6 +484,11 @@
                 offlineIcon.classList.remove('loading');
                 offlineText.textContent = 'Stream Offline';
                 offlineHint.textContent = 'Waiting for broadcast. Tap the video to retry.';
+                if (consecutiveErrors >= 2) {
+                    offlineOverlay.classList.remove('hidden');
+                } else {
+                    offlineOverlay.classList.add('hidden');
+                }
             }
         }
 
@@ -509,7 +515,7 @@
         }
 
         function showTapOverlay() {
-            if (tapOverlay && isMobile) {
+            if (tapOverlay) {
                 tapOverlay.classList.remove('hidden');
             }
         }
@@ -582,7 +588,7 @@
             if (!audioPrompt) {
                 return;
             }
-            const shouldShow = show;
+            const shouldShow = show && isMobile;
             if (shouldShow) {
                 audioPrompt.classList.add('show');
             } else {
@@ -633,6 +639,8 @@
 
         // Allow tap-to-play on mobile if autoplay is blocked
         offlineOverlay.addEventListener('click', () => {
+            consecutiveErrors = 0;
+            offlineOverlay.classList.add('hidden');
             tryInitStream();
             attemptPlay();
         });
