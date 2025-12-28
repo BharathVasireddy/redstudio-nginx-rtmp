@@ -16,12 +16,21 @@ Minimal live streaming server built on the nginx-rtmp-module.
 - OBS → Stream Key: the **Ingest Key** from `/admin`
 - Cloudflare: `ingest.*` is **DNS only** (grey cloud)
 - Oracle firewall: ports `1935`, `80`, `8080` are open
+- Multistream toggles: use **Save & Apply** (restarts NGINX briefly)
+- YouTube: confirm the correct stream event is selected and “Go Live” if auto-start is off
 
 ## OBS Settings
 
 1) Service: `Custom`
 2) Server: `rtmp://<server-ip>/ingest`
 3) Stream key: from `/admin` → Ingest Settings
+
+Recommended encoder settings (safe defaults):
+- Rate control: CBR
+- Bitrate: 3500–6000 kbps (start at 3500 on Oracle Free)
+- Keyframe interval: 2 seconds
+- Preset: veryfast (x264) / hardware if stable
+- Audio: 128–192 kbps AAC
 
 ## Local (macOS / Linux)
 
@@ -54,6 +63,13 @@ ssh -i key.pem ubuntu@<server-ip> "sudo /var/www/nginx-rtmp-module/deploy.sh"
 - Configure destinations, then Save & Apply to restream.
 - Credentials are stored on the server at `data/admin.credentials` (created on first deploy).
 - Optional: set GitHub secrets `ADMIN_USER` and `ADMIN_PASSWORD` to override.
+- UI login uses a session cookie (no browser popup).
+
+## Ingest Security (Simple + Secure)
+
+- Only the **Ingest Key** can publish (enforced by `on_publish`).
+- Change the key in `/admin` if it ever leaks.
+- Only one encoder can publish at a time (by design).
 
 ## Domain (Cloudflare)
 
@@ -83,6 +99,9 @@ sudo ./setup-oracle.sh
 
 - HLS is generated directly by NGINX (single bitrate = what you send from OBS).
 - Open ports `1935`, `80`, and `8080` in Oracle Cloud.
+- Multistream changes require a reconnect/restart to take effect (few seconds).
+- `/stat` only shows publishers on the active worker (repo defaults to 1 worker).
+- Oracle Free resources are limited; avoid heavy CPU encodes on the server.
 
 ## Troubleshooting
 
