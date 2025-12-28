@@ -125,10 +125,78 @@
 
         .mobile-fallback {
             display: none;
-            padding: 1.25rem 1rem 2rem;
-            background: #0b0b0b;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 2rem 1.25rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-top: 1px solid var(--border);
+        }
+
+        .mobile-fallback__card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
             text-align: center;
+        }
+
+        .mobile-fallback__icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, var(--primary) 0%, #b91c1c 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.25);
+        }
+
+        .mobile-fallback__icon svg {
+            width: 28px;
+            height: 28px;
+            color: #ffffff;
+        }
+
+        .mobile-fallback__title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .mobile-fallback__text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .mobile-fallback__button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.9rem 1.5rem;
+            background: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+        }
+
+        .mobile-fallback__button:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 4px rgba(220, 38, 38, 0.2);
+        }
+
+        .mobile-fallback__button svg {
+            width: 18px;
+            height: 18px;
         }
 
         .stream-stats {
@@ -166,22 +234,6 @@
         .stat-hint {
             font-size: 0.75rem;
             color: var(--text-secondary);
-        }
-
-        .mobile-fallback__text {
-            font-size: 0.95rem;
-            color: rgba(255, 255, 255, 0.75);
-            margin-bottom: 0.75rem;
-        }
-
-        .mobile-fallback__button {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            background: var(--primary);
-            color: #fff;
-            text-decoration: none;
-            font-weight: 600;
-            border-radius: 999px;
         }
 
         /* Offline overlay */
@@ -509,10 +561,23 @@
         </div>
 
         <div class="mobile-fallback">
-        <div class="mobile-fallback__text">
-            Can't see the live stream? Tap below to open the HLS player.
-        </div>
-        <a class="mobile-fallback__button" href="/hls-player.html">Open HLS Player</a>
+            <div class="mobile-fallback__card">
+                <div class="mobile-fallback__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </div>
+                <div class="mobile-fallback__title">Can't see the live stream?</div>
+                <div class="mobile-fallback__text">
+                    Open our alternative HLS player for better compatibility on your device.
+                </div>
+                <a class="mobile-fallback__button" href="/hls-player.html">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Open HLS Player
+                </a>
+            </div>
         </div>
     </div>
 
