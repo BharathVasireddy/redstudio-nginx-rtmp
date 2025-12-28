@@ -190,6 +190,27 @@
             cursor: pointer;
         }
 
+        .status-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 1.5rem;
+            transform: translateX(-50%);
+            background: rgba(15, 15, 15, 0.92);
+            color: #fff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 30;
+        }
+
+        .status-toast.show {
+            opacity: 1;
+        }
+
         .offline-icon {
             width: 120px;
             height: 120px;
@@ -312,12 +333,17 @@
         </div>
     </div>
 
+    <div class="status-toast" id="statusToast">Reconnected</div>
+
     <!-- Scripts -->
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
         let player = null;
         let isReconnecting = false;
+        let wasReconnecting = false;
         let lastInitAt = 0;
+        let suspendReconnectUntil = 0;
+        let toastTimer = null;
         const REINIT_COOLDOWN_MS = 3000;
         const STREAM_URL = '/hls/stream.m3u8';
 
@@ -326,6 +352,7 @@
         const offlineHint = document.getElementById('offlineHint');
         const offlineIcon = document.getElementById('offlineIcon');
         const tapOverlay = document.getElementById('tapOverlay');
+        const statusToast = document.getElementById('statusToast');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
         // Initialize Video.js player
@@ -364,6 +391,10 @@
                 offlineOverlay.classList.add('hidden');
                 setReconnectState(false);
                 hideTapOverlay();
+                if (wasReconnecting) {
+                    showToast('Reconnected');
+                    wasReconnecting = false;
+                }
             });
 
             player.on('error', () => {
@@ -388,6 +419,11 @@
                 showTapOverlay();
             });
 
+            player.on('fullscreenchange', () => {
+                suspendReconnectUntil = Date.now() + 4000;
+                showTapOverlay();
+            });
+
             attemptPlay();
         }
 
@@ -407,6 +443,9 @@
 
         function tryInitStream() {
             const now = Date.now();
+            if (now < suspendReconnectUntil) {
+                return;
+            }
             if (now - lastInitAt < REINIT_COOLDOWN_MS) {
                 return;
             }
@@ -416,6 +455,10 @@
         }
 
         function scheduleReconnect() {
+            if (Date.now() < suspendReconnectUntil) {
+                return;
+            }
+            wasReconnecting = true;
             setReconnectState(true);
             tryInitStream();
         }
@@ -442,6 +485,20 @@
                     showTapOverlay();
                 });
             }
+        }
+
+        function showToast(message) {
+            if (!statusToast) {
+                return;
+            }
+            statusToast.textContent = message;
+            statusToast.classList.add('show');
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+            }
+            toastTimer = setTimeout(() => {
+                statusToast.classList.remove('show');
+            }, 2000);
         }
 
         // Start player
