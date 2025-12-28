@@ -7,6 +7,28 @@ JSON_FILE="${DATA_DIR}/restream.json"
 CONF_FILE="${DATA_DIR}/restream.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
 
+run_cmd() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+        return $?
+    fi
+    if command -v sudo >/dev/null 2>&1; then
+        sudo -n "$@"
+        return $?
+    fi
+    return 1
+}
+
+ensure_sudo() {
+    if [ "$(id -u)" -eq 0 ]; then
+        return 0
+    fi
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
 if [ ! -f "${JSON_FILE}" ]; then
     cp "${ROOT_DIR}/config/restream.default.json" "${JSON_FILE}"
 fi
@@ -18,20 +40,26 @@ if [ ! -x "${NGINX_BIN}" ]; then
 fi
 
 if [ -x "${NGINX_BIN}" ]; then
-    if [ "$(id -u)" -eq 0 ]; then
-        "${NGINX_BIN}" -t
-        "${NGINX_BIN}" -s reload
-    elif command -v sudo >/dev/null 2>&1; then
-        if sudo -n true 2>/dev/null; then
-            sudo -n "${NGINX_BIN}" -t
-            sudo -n "${NGINX_BIN}" -s reload
+    if ! ensure_sudo; then
+        echo "sudo permissions missing for nginx reload. Run deploy to install sudoers." >&2
+        exit 1
+    fi
+
+    run_cmd "${NGINX_BIN}" -t
+
+    if ! run_cmd "${NGINX_BIN}" -s reload; then
+        PGREP_BIN="$(command -v pgrep || true)"
+        if [ -n "${PGREP_BIN}" ]; then
+            MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
         else
-            echo "sudo permissions missing for nginx reload. Run deploy to install sudoers." >&2
+            MASTER_PID=""
+        fi
+        if [ -n "${MASTER_PID}" ]; then
+            run_cmd /bin/kill -HUP "${MASTER_PID}"
+        else
+            echo "nginx master process not found; reload failed." >&2
             exit 1
         fi
-    else
-        echo "nginx reload requires root or sudo." >&2
-        exit 1
     fi
 else
     echo "NGINX binary not found. Skipping reload."
