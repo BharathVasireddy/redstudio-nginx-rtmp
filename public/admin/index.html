@@ -329,6 +329,41 @@
             color: var(--danger);
         }
 
+        /* Toasts */
+        .toast-container {
+            position: fixed;
+            top: 88px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            z-index: 1100;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--border);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+            min-width: 240px;
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.info {
+            border-left-color: var(--accent);
+        }
+
         /* Empty State */
         .empty-state {
             text-align: center;
@@ -345,6 +380,12 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .toast-container {
+                top: 78px;
+                right: 12px;
+                left: 12px;
+            }
+
             .header-content {
                 flex-direction: column;
                 align-items: stretch;
@@ -410,6 +451,8 @@
         </div>
     </main>
 
+    <div class="toast-container" id="toastContainer"></div>
+
     <script>
         const apiBase = '/admin/api';
         const listEl = document.getElementById('list');
@@ -417,6 +460,7 @@
         const addBtn = document.getElementById('addBtn');
         const saveBtn = document.getElementById('saveBtn');
         const applyBtn = document.getElementById('applyBtn');
+        const toastContainer = document.getElementById('toastContainer');
 
         const defaultDestinations = [
             {
@@ -457,6 +501,26 @@
         ];
 
         let state = { destinations: [] };
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
+        }
+
+        async function getErrorMessage(res) {
+            try {
+                const payload = await res.json();
+                if (payload && payload.error) {
+                    return payload.error;
+                }
+            } catch (err) {
+                // ignore JSON parse errors
+            }
+            return `HTTP ${res.status}`;
+        }
 
         function mergeDefaults(destinations) {
             const merged = [];
@@ -556,12 +620,14 @@
             } catch (err) {
                 statusEl.textContent = 'Failed to load configuration';
                 statusEl.className = 'status error';
+                showToast('Failed to load configuration', 'error');
             }
         }
 
         async function saveConfig(apply) {
             statusEl.textContent = 'Saving...';
             statusEl.className = 'status';
+            showToast('Saving...', 'info');
 
             try {
                 const res = await fetch(`${apiBase}/restream`, {
@@ -571,29 +637,37 @@
                 });
 
                 if (!res.ok) {
+                    const errorMessage = await getErrorMessage(res);
                     statusEl.textContent = 'Save failed';
                     statusEl.className = 'status error';
+                    showToast(`Save failed: ${errorMessage}`, 'error');
                     return;
                 }
 
                 if (apply) {
                     statusEl.textContent = 'Applying changes...';
+                    showToast('Applying changes...', 'info');
                     const applyRes = await fetch(`${apiBase}/restream/apply`, { method: 'POST' });
                     if (!applyRes.ok) {
+                        const errorMessage = await getErrorMessage(applyRes);
                         statusEl.textContent = 'Apply failed';
                         statusEl.className = 'status error';
+                        showToast(`Apply failed: ${errorMessage}`, 'error');
                         return;
                     }
                     statusEl.textContent = '✓ Saved and applied successfully';
                     statusEl.className = 'status success';
+                    showToast('Saved and applied successfully', 'success');
                     return;
                 }
 
                 statusEl.textContent = '✓ Saved successfully';
                 statusEl.className = 'status success';
+                showToast('Saved successfully', 'success');
             } catch (err) {
                 statusEl.textContent = 'Network error';
                 statusEl.className = 'status error';
+                showToast('Network error', 'error');
             }
         }
 
