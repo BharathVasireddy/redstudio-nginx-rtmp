@@ -567,12 +567,12 @@
             opacity: 0.3;
         }
 
-        /* Floating Preview Player - Slides from right */
+        /* Floating Preview Player - Slides from right (bottom-right position) */
         .floating-player {
             position: fixed;
-            top: 50%;
+            bottom: 1.5rem;
             right: 0;
-            transform: translateY(-50%) translateX(100%);
+            transform: translateX(100%);
             width: 360px;
             background: #000;
             border-radius: 12px 0 0 12px;
@@ -583,15 +583,14 @@
         }
 
         .floating-player.show {
-            transform: translateY(-50%) translateX(0);
+            transform: translateX(0);
         }
 
-        /* Toggle button on right edge */
+        /* Toggle button on right edge (bottom-right) */
         .player-toggle {
             position: fixed;
-            top: 50%;
+            bottom: 1.5rem;
             right: 0;
-            transform: translateY(-50%);
             width: 40px;
             height: 80px;
             background: linear-gradient(135deg, var(--accent) 0%, #b91c1c 100%);
@@ -1654,8 +1653,8 @@
 
             previewPlayer = new Plyr(videoElement, {
                 controls: ['play', 'mute', 'volume', 'fullscreen'],
-                autoplay: false,
-                muted: true,
+                autoplay: true,
+                muted: false,
                 hideControls: true,
                 resetOnEnd: false,
                 keyboard: { focused: false, global: false }
