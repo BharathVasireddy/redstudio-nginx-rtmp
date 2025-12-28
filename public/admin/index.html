@@ -6,38 +6,72 @@
     <title>Red Studio Admin</title>
     <style>
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0a0a0a;
-            color: #fff;
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111;
+            --bg-tertiary: #1a1a1a;
+            --border: rgba(255, 255, 255, 0.08);
+            --text-primary: #fff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --accent: #dc2626;
+            --accent-hover: #ef4444;
+            --success: #22c55e;
+            --danger: #ef4444;
         }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header */
         .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #0f0f0f;
+            gap: 1rem;
         }
 
         .logo {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            font-size: 1.125rem;
             font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
-        .logo-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 999px;
-            background: #dc2626;
-            box-shadow: 0 0 12px rgba(220, 38, 38, 0.7);
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent) 0%, #b91c1c 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.125rem;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
         }
 
         .actions {
@@ -46,97 +80,168 @@
         }
 
         .btn {
-            border: 0;
-            border-radius: 999px;
-            padding: 0.6rem 1.1rem;
+            border: none;
+            border-radius: 8px;
+            padding: 0.625rem 1.25rem;
             font-weight: 600;
+            font-size: 0.875rem;
             cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-primary {
-            background: #dc2626;
-            color: #fff;
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
         }
 
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Container */
         .container {
-            max-width: 960px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 1.5rem;
+            padding: 2rem 1.5rem;
         }
 
+        /* Card */
         .card {
-            background: #111;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 1rem;
-            margin-bottom: 1.25rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
         }
 
         .card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
         }
 
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
-            gap: 0.75rem;
+        .card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .card-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 0.75rem;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            margin-bottom: 0.75rem;
+            gap: 1rem;
         }
 
-        .row:last-child {
+        /* Platform Row */
+        .platform-row {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+
+        .platform-row:last-child {
             margin-bottom: 0;
         }
 
+        .platform-row.is-enabled {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .platform-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .platform-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .platform-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .platform-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Form Fields */
         .field {
             display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+            gap: 0.5rem;
         }
 
         .field label {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
         }
 
         .field input {
-            background: #0c0c0c;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 0.55rem 0.7rem;
-            color: #fff;
-            font-size: 0.85rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.625rem 0.875rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            transition: all 0.2s;
         }
 
-        .toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.8rem;
+        .field input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
         }
 
+        /* Toggle Switch */
         .toggle-group {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            font-size: 0.8rem;
-            margin-bottom: 0.35rem;
+            gap: 0.625rem;
         }
 
         .toggle-switch {
             position: relative;
-            width: 44px;
-            height: 24px;
+            width: 48px;
+            height: 26px;
             display: inline-block;
         }
 
@@ -150,10 +255,10 @@
             position: absolute;
             cursor: pointer;
             inset: 0;
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 999px;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-            transition: background 0.2s ease;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
         }
 
         .toggle-switch .slider::before {
@@ -163,92 +268,145 @@
             width: 18px;
             left: 3px;
             top: 3px;
-            background: #fff;
+            background: white;
             border-radius: 999px;
-            transition: transform 0.2s ease;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .toggle-switch input:checked + .slider {
-            background: rgba(34, 197, 94, 0.8);
+            background: var(--success);
+            border-color: var(--success);
         }
 
         .toggle-switch input:checked + .slider::before {
-            transform: translateX(20px);
+            transform: translateX(22px);
         }
 
         .toggle-label {
-            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
         }
 
-        .row.is-enabled {
-            border: 1px solid rgba(34, 197, 94, 0.4);
-            background: rgba(34, 197, 94, 0.06);
-        }
-
-        .remove-btn {
-            border: 0;
+        /* Delete Button */
+        .delete-btn {
+            border: none;
             background: transparent;
-            color: #ef4444;
+            color: var(--text-muted);
             cursor: pointer;
-            padding: 0.2rem 0;
+            padding: 0.5rem;
             display: inline-flex;
             align-items: center;
+            border-radius: 6px;
+            transition: all 0.2s;
         }
 
-        .remove-btn:hover {
-            color: #f87171;
+        .delete-btn:hover {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
         }
 
-        .remove-btn svg {
-            width: 16px;
-            height: 16px;
-            fill: currentColor;
+        .delete-btn svg {
+            width: 18px;
+            height: 18px;
         }
 
-        .hint {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 0.5rem;
-        }
-
+        /* Status Message */
         .status {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        @media (max-width: 860px) {
-            .row {
-                grid-template-columns: 1fr;
+        .status.success {
+            color: var(--success);
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: stretch;
             }
 
             .actions {
+                width: 100%;
+            }
+
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .platform-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .platform-header {
                 flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+
+            .platform-controls {
+                justify-content: space-between;
+            }
+
+            .card-footer {
+                flex-direction: column-reverse;
+                align-items: stretch;
             }
         }
     </style>
 </head>
 <body>
     <header class="header">
-        <div class="logo">
-            <span class="logo-dot"></span>
-            Red Studio Admin
-        </div>
-        <div class="actions">
-            <button class="btn btn-secondary" id="saveBtn">Save</button>
-            <button class="btn btn-primary" id="applyBtn">Save & Apply</button>
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">R</div>
+                <span>Red Studio Admin</span>
+            </div>
+            <div class="actions">
+                <button class="btn btn-secondary" id="saveBtn">Save Changes</button>
+                <button class="btn btn-primary" id="applyBtn">Save & Apply</button>
+            </div>
         </div>
     </header>
 
     <main class="container">
         <div class="card">
-            <div class="card-title">Multistream Destinations</div>
-            <div id="list"></div>
-            <button class="btn btn-secondary" id="addBtn">Add Platform</button>
-            <div class="hint">
-                Enter the platform ingest URL and stream key. If a platform gives you a different URL, replace it.
+            <div class="card-header">
+                <h1 class="card-title">Multistream Destinations</h1>
+                <p class="card-subtitle">Configure RTMP destinations to simultaneously stream to multiple platforms</p>
             </div>
-            <div class="status" id="status"></div>
+            <div class="card-body">
+                <div id="list"></div>
+            </div>
+            <div class="card-footer">
+                <div class="status" id="status"></div>
+                <button class="btn btn-secondary" id="addBtn">+ Add Custom Platform</button>
+            </div>
         </div>
     </main>
 
@@ -323,32 +481,36 @@
             listEl.innerHTML = '';
             state.destinations.forEach((dest, index) => {
                 const row = document.createElement('div');
-                row.className = `row${dest.enabled ? ' is-enabled' : ''}`;
+                row.className = `platform-row${dest.enabled ? ' is-enabled' : ''}`;
                 row.innerHTML = `
-                    <div class="field">
-                        <label>Platform Name</label>
-                        <input data-index="${index}" data-field="name" value="${dest.name || ''}">
-                    </div>
-                    <div class="field">
-                        <label>RTMP URL</label>
-                        <input data-index="${index}" data-field="rtmp_url" value="${dest.rtmp_url || ''}">
-                    </div>
-                    <div class="field">
-                        <label>Stream Key</label>
-                        <input data-index="${index}" data-field="stream_key" value="${dest.stream_key || ''}">
-                    </div>
-                    <div>
-                        <div class="toggle-group">
-                            <label class="toggle-switch">
-                                <input type="checkbox" data-index="${index}" data-field="enabled" ${dest.enabled ? 'checked' : ''}>
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-label">Enabled</span>
-                            <button class="remove-btn" data-index="${index}" data-name="${dest.name || 'this destination'}" aria-label="Delete" title="Delete">
-                                <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z"/>
+                    <div class="platform-header">
+                        <div class="platform-name">${dest.name || 'Unnamed Platform'}</div>
+                        <div class="platform-controls">
+                            <div class="toggle-group">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" data-index="${index}" data-field="enabled" ${dest.enabled ? 'checked' : ''}>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="toggle-label">${dest.enabled ? 'Enabled' : 'Disabled'}</span>
+                            </div>
+                            <button class="delete-btn" data-index="${index}" data-name="${dest.name || 'this platform'}" title="Delete platform">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
                                 </svg>
                             </button>
+                        </div>
+                    </div>
+                    <div class="platform-fields">
+                        <div class="field">
+                            <label>RTMP Server URL</label>
+                            <input data-index="${index}" data-field="rtmp_url" value="${dest.rtmp_url || ''}" placeholder="rtmp://example.com/live">
+                        </div>
+                        <div class="field">
+                            <label>Stream Key</label>
+                            <input type="password" data-index="${index}" data-field="stream_key" value="${dest.stream_key || ''}" placeholder="Enter your stream key">
                         </div>
                     </div>
                 `;
@@ -365,59 +527,80 @@
             }
             if (field === 'enabled') {
                 state.destinations[index][field] = target.checked;
+                render();
                 return;
             }
             state.destinations[index][field] = target.value;
         }
 
         function removeItem(event) {
-            if (!event.target.classList.contains('remove-btn')) {
+            if (!event.target.closest('.delete-btn')) {
                 return;
             }
-            const label = event.target.dataset.name || 'this destination';
+            const btn = event.target.closest('.delete-btn');
+            const label = btn.dataset.name || 'this platform';
             if (!confirm(`Delete ${label}?`)) {
                 return;
             }
-            const index = Number(event.target.dataset.index);
+            const index = Number(btn.dataset.index);
             state.destinations.splice(index, 1);
             render();
         }
 
         async function loadConfig() {
-            const res = await fetch(`${apiBase}/restream`);
-            state = await res.json();
-            state.destinations = mergeDefaults(state.destinations);
-            render();
+            try {
+                const res = await fetch(`${apiBase}/restream`);
+                state = await res.json();
+                state.destinations = mergeDefaults(state.destinations);
+                render();
+            } catch (err) {
+                statusEl.textContent = 'Failed to load configuration';
+                statusEl.className = 'status error';
+            }
         }
 
         async function saveConfig(apply) {
             statusEl.textContent = 'Saving...';
-            const res = await fetch(`${apiBase}/restream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(state)
-            });
-            if (!res.ok) {
-                statusEl.textContent = 'Save failed.';
-                return;
-            }
-            if (apply) {
-                statusEl.textContent = 'Applying...';
-                const applyRes = await fetch(`${apiBase}/restream/apply`, { method: 'POST' });
-                if (!applyRes.ok) {
-                    statusEl.textContent = 'Apply failed.';
+            statusEl.className = 'status';
+
+            try {
+                const res = await fetch(`${apiBase}/restream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(state)
+                });
+
+                if (!res.ok) {
+                    statusEl.textContent = 'Save failed';
+                    statusEl.className = 'status error';
                     return;
                 }
-                statusEl.textContent = 'Saved and applied.';
-                return;
+
+                if (apply) {
+                    statusEl.textContent = 'Applying changes...';
+                    const applyRes = await fetch(`${apiBase}/restream/apply`, { method: 'POST' });
+                    if (!applyRes.ok) {
+                        statusEl.textContent = 'Apply failed';
+                        statusEl.className = 'status error';
+                        return;
+                    }
+                    statusEl.textContent = '✓ Saved and applied successfully';
+                    statusEl.className = 'status success';
+                    return;
+                }
+
+                statusEl.textContent = '✓ Saved successfully';
+                statusEl.className = 'status success';
+            } catch (err) {
+                statusEl.textContent = 'Network error';
+                statusEl.className = 'status error';
             }
-            statusEl.textContent = 'Saved.';
         }
 
         addBtn.addEventListener('click', () => {
             state.destinations.push({
                 id: `custom-${Date.now()}`,
-                name: 'Custom',
+                name: 'Custom Platform',
                 enabled: false,
                 rtmp_url: 'rtmp://',
                 stream_key: ''
@@ -431,9 +614,7 @@
         listEl.addEventListener('change', updateFromInputs);
         listEl.addEventListener('click', removeItem);
 
-        loadConfig().catch(() => {
-            statusEl.textContent = 'Failed to load config.';
-        });
+        loadConfig();
     </script>
 </body>
 </html>
