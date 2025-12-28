@@ -4,16 +4,16 @@ Minimal live streaming server built on the nginx-rtmp-module.
 
 ## Quick Start
 
-- RTMP server: `rtmp://<server-ip>/live`
-- Stream key: `stream`
+- RTMP server: `rtmp://<server-ip>/ingest`
+- Stream key: set in `/admin` (Ingest Settings)
 - Watch URL: `http://<server-ip>/` (port 80) or `http://<server-ip>:8080/`
 - HLS playlist: `http://<server-ip>/hls/stream.m3u8`
 
 ## OBS Settings
 
 1) Service: `Custom`
-2) Server: `rtmp://<server-ip>/live`
-3) Stream key: `stream`
+2) Server: `rtmp://<server-ip>/ingest`
+3) Stream key: from `/admin` → Ingest Settings
 
 ## Local (macOS / Linux)
 
@@ -22,14 +22,14 @@ Minimal live streaming server built on the nginx-rtmp-module.
 ```
 
 Watch at `http://localhost:8080/` and stream to:
-`rtmp://localhost/live` with stream key `stream`.
+`rtmp://localhost/ingest` with the stream key from `/admin` (or leave blank if you haven't set one yet).
 
 ## Local (Windows)
 
 Run `stream-start.bat`.
 
 Watch at `http://localhost:8080/` and stream to:
-`rtmp://localhost/live` with stream key `stream`.
+`rtmp://localhost/ingest` with the stream key from `/admin` (or leave blank if you haven't set one yet).
 
 ## Deployment
 
@@ -42,6 +42,7 @@ ssh -i key.pem ubuntu@<server-ip> "sudo /var/www/nginx-rtmp-module/deploy.sh"
 ## Multistream Admin
 
 - Admin UI: `https://live.cloud9digital.in/admin/`
+- Configure the ingest key in **Ingest Settings** (used by OBS).
 - Configure destinations, then Save & Apply to restream.
 - Credentials are stored on the server at `data/admin.credentials` (created on first deploy).
 - Optional: set GitHub secrets `ADMIN_USER` and `ADMIN_PASSWORD` to override.
@@ -55,8 +56,8 @@ Recommended setup:
 
 OBS settings:
 
-- Server: `rtmp://ingest.cloud9digital.in/live`
-- Stream key: `stream`
+- Server: `rtmp://ingest.cloud9digital.in/ingest`
+- Stream key: from `/admin` → Ingest Settings
 
 Player URL:
 
