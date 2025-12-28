@@ -37,11 +37,14 @@ function Get-PythonCmd {
 }
 
 function Find-PythonExe {
-    $candidates = @(
-        Join-Path $env:LocalAppData "Programs\Python",
-        "$env:ProgramFiles\Python",
-        "${env:ProgramFiles(x86)}\Python"
-    )
+    $candidates = @()
+    $localApp = [string]$env:LocalAppData
+    $programFiles = [string]$env:ProgramFiles
+    $programFilesX86 = [string]${env:ProgramFiles(x86)}
+
+    if ($localApp) { $candidates += (Join-Path $localApp "Programs\Python") }
+    if ($programFiles) { $candidates += (Join-Path $programFiles "Python") }
+    if ($programFilesX86) { $candidates += (Join-Path $programFilesX86 "Python") }
     foreach ($root in $candidates) {
         if (-not (Test-Path $root)) { continue }
         $exe = Get-ChildItem -Path $root -Recurse -Filter "python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
