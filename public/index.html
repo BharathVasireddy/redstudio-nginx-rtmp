@@ -418,6 +418,22 @@
             .stat-item {
                 min-width: 120px;
             }
+
+            /* Ensure overlays center properly on mobile */
+            .video-container {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .tap-overlay,
+            .buffering-overlay,
+            .offline-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            }
         }
 
         @media (max-width: 768px) {
