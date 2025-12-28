@@ -2,6 +2,7 @@
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 def clean(value: str) -> str:
@@ -13,7 +14,7 @@ def clean(value: str) -> str:
     return value
 
 
-def build_push_url(dest: dict) -> str | None:
+def build_push_url(dest: dict) -> Optional[str]:
     base = clean(dest.get("rtmp_url", ""))
     key = clean(dest.get("stream_key", ""))
     if not base:
