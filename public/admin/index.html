@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>U-RL.COM Admin</title>
+
+    <!-- Plyr -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+
     <style>
         * {
             margin: 0;
@@ -197,6 +201,42 @@
         .metric-subvalue {
             font-size: 0.8rem;
             color: var(--text-secondary);
+        }
+
+        .embed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .code-block {
+            width: 100%;
+            min-height: 140px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 0.9rem;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .embed-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+        }
+
+        .embed-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
         }
 
         .reconnect-toggle {
@@ -510,6 +550,53 @@
             opacity: 0.3;
         }
 
+        /* Preview Player */
+        .preview-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        .preview-container .plyr {
+            width: 100%;
+            height: 100%;
+        }
+
+        .preview-container .plyr__video-wrapper {
+            background: #000;
+        }
+
+        .preview-offline {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.875rem;
+            z-index: 10;
+        }
+
+        .preview-offline.hidden {
+            display: none;
+        }
+
+        .preview-offline svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 0.75rem;
+            opacity: 0.4;
+        }
+
+        :root {
+            --plyr-color-main: #dc2626;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .toast-container {
@@ -640,6 +727,80 @@
             </div>
         </div>
 
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h1 class="card-title">Stream Preview</h1>
+                <p class="card-subtitle">Monitor your live stream while managing settings.</p>
+            </div>
+            <div class="card-body">
+                <div class="preview-container">
+                    <video id="previewPlayer" playsinline></video>
+                    <div class="preview-offline" id="previewOffline">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7" />
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                        </svg>
+                        <span>Stream Offline</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h1 class="card-title">Embed Options</h1>
+                <p class="card-subtitle">Choose how to embed the live stream on external sites.</p>
+            </div>
+            <div class="card-body">
+                <div class="embed-grid">
+                    <div class="field">
+                        <label>Embed Type</label>
+                        <select id="embedType">
+                            <option value="full">Full Page (Live UI)</option>
+                            <option value="embed">Player Only (Embed)</option>
+                            <option value="hls">Direct HLS URL</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Width</label>
+                        <input id="embedWidth" value="100%">
+                    </div>
+                    <div class="field">
+                        <label>Height</label>
+                        <input id="embedHeight" value="560">
+                    </div>
+                </div>
+                <div class="platform-controls" style="margin-top: 0.75rem; flex-wrap: wrap; gap: 1rem;">
+                    <label class="reconnect-toggle">
+                        <input type="checkbox" id="embedResponsive" checked>
+                        Responsive (16:9)
+                    </label>
+                    <label class="reconnect-toggle">
+                        <input type="checkbox" id="embedControls" checked>
+                        Show Controls
+                    </label>
+                    <label class="reconnect-toggle">
+                        <input type="checkbox" id="embedBadge" checked>
+                        Show Live Badge
+                    </label>
+                    <label class="reconnect-toggle">
+                        <input type="checkbox" id="embedStats">
+                        Show Viewer Count
+                    </label>
+                    <label class="reconnect-toggle">
+                        <input type="checkbox" id="embedMuted">
+                        Start Muted (autoplay)
+                    </label>
+                </div>
+                <p class="embed-note">Use the embed code below in your client website or app.</p>
+                <pre class="code-block" id="embedCode"></pre>
+                <div class="embed-actions">
+                    <button class="btn btn-secondary" id="copyEmbedBtn" type="button">Copy Embed Code</button>
+                    <span class="status" id="embedStatus"></span>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h1 class="card-title">Multistream Destinations</h1>
@@ -686,6 +847,17 @@
         const diskSub = document.getElementById('diskSub');
         const netValue = document.getElementById('netValue');
         const netSub = document.getElementById('netSub');
+        const embedType = document.getElementById('embedType');
+        const embedWidth = document.getElementById('embedWidth');
+        const embedHeight = document.getElementById('embedHeight');
+        const embedResponsive = document.getElementById('embedResponsive');
+        const embedControls = document.getElementById('embedControls');
+        const embedBadge = document.getElementById('embedBadge');
+        const embedStats = document.getElementById('embedStats');
+        const embedMuted = document.getElementById('embedMuted');
+        const embedCode = document.getElementById('embedCode');
+        const copyEmbedBtn = document.getElementById('copyEmbedBtn');
+        const embedStatus = document.getElementById('embedStatus');
 
         const defaultDestinations = [
             {
@@ -736,6 +908,58 @@
                 return `rtmp://${host}/ingest`;
             }
             return `rtmp://ingest.${host}/ingest`;
+        }
+
+        function getEmbedBase() {
+            return window.location.origin;
+        }
+
+        function buildEmbedUrl() {
+            const type = embedType ? embedType.value : 'full';
+            const origin = getEmbedBase();
+            if (type === 'hls') {
+                return `${origin}/hls/stream.m3u8`;
+            }
+            if (type === 'embed') {
+                const params = new URLSearchParams();
+                params.set('controls', embedControls && embedControls.checked ? '1' : '0');
+                params.set('badge', embedBadge && embedBadge.checked ? '1' : '0');
+                params.set('stats', embedStats && embedStats.checked ? '1' : '0');
+                params.set('muted', embedMuted && embedMuted.checked ? '1' : '0');
+                return `${origin}/embed.html?${params.toString()}`;
+            }
+            return `${origin}/`;
+        }
+
+        function buildEmbedCode() {
+            if (!embedCode) {
+                return;
+            }
+            const type = embedType ? embedType.value : 'full';
+            const url = buildEmbedUrl();
+            if (type === 'hls') {
+                embedCode.textContent = url;
+                return;
+            }
+
+            const width = embedWidth && embedWidth.value ? embedWidth.value : '100%';
+            const height = embedHeight && embedHeight.value ? embedHeight.value : '560';
+            const responsive = embedResponsive && embedResponsive.checked;
+
+            if (responsive) {
+                embedCode.textContent = `<div style="position:relative;padding-top:56.25%;">\n  <iframe\n    src="${url}"\n    style="position:absolute;inset:0;width:100%;height:100%;border:0;"\n    allow="autoplay; fullscreen; picture-in-picture"\n    allowfullscreen\n  ></iframe>\n</div>`;
+                return;
+            }
+
+            embedCode.textContent = `<iframe\n  src="${url}"\n  width="${width}"\n  height="${height}"\n  style="border:0;"\n  allow="autoplay; fullscreen; picture-in-picture"\n  allowfullscreen\n></iframe>`;
+        }
+
+        function setEmbedStatus(message, type = 'info') {
+            if (!embedStatus) {
+                return;
+            }
+            embedStatus.textContent = message;
+            embedStatus.className = `status ${type}`;
         }
 
         function showToast(message, type = 'info') {
@@ -1175,13 +1399,75 @@
             });
         }
 
+        // Preview Player
+        let previewPlayer = null;
+        const previewOffline = document.getElementById('previewOffline');
+        const STREAM_URL = '/hls/stream.m3u8';
+
+        function initPreviewPlayer() {
+            const videoElement = document.getElementById('previewPlayer');
+            if (!videoElement) return;
+
+            previewPlayer = new Plyr(videoElement, {
+                controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+                autoplay: false,
+                muted: true,
+                hideControls: true,
+                resetOnEnd: false,
+                keyboard: { focused: false, global: false }
+            });
+
+            // Set HLS source
+            if (Hls.isSupported()) {
+                const hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+                hls.loadSource(STREAM_URL);
+                hls.attachMedia(videoElement);
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    if (data.fatal) {
+                        if (previewOffline) {
+                            previewOffline.classList.remove('hidden');
+                        }
+                    }
+                });
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    if (previewOffline) {
+                        previewOffline.classList.add('hidden');
+                    }
+                });
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                videoElement.src = STREAM_URL;
+            }
+
+            previewPlayer.on('playing', () => {
+                if (previewOffline) {
+                    previewOffline.classList.add('hidden');
+                }
+            });
+
+            previewPlayer.on('error', () => {
+                if (previewOffline) {
+                    previewOffline.classList.remove('hidden');
+                }
+            });
+        }
+
         ensureSession().then((ok) => {
             if (ok) {
                 loadConfig();
                 loadMetrics();
                 setInterval(loadMetrics, 5000);
+                initPreviewPlayer();
             }
         });
     </script>
+
+    <!-- Plyr JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <!-- HLS.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
 </body>
 </html>
