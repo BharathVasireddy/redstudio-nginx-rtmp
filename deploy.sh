@@ -56,7 +56,8 @@ chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" \
   "${REPO_DIR}/scripts/hls-viewers.sh" 2>/dev/null || true
 
 # Ensure data directory exists and defaults are present
-mkdir -p "${DATA_DIR}"
+sudo mkdir -p "${DATA_DIR}"
+sudo chown -R "$(id -un)":"$(id -gn)" "${DATA_DIR}"
 if [ ! -f "${RESTREAM_JSON}" ]; then
     cp "${REPO_DIR}/config/restream.default.json" "${RESTREAM_JSON}"
 fi
