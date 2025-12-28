@@ -595,6 +595,22 @@
             return `HTTP ${res.status}`;
         }
 
+        async function waitForOrigin(timeoutMs = 12000) {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                try {
+                    const res = await fetch(`${apiBase}/restream`, { cache: 'no-store' });
+                    if (res.ok) {
+                        return true;
+                    }
+                } catch (err) {
+                    // ignore transient network errors during restart
+                }
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+            return false;
+        }
+
         function mergeDefaults(destinations) {
             const merged = [];
             const seen = new Set();
@@ -720,18 +736,47 @@
                 if (apply) {
                     statusEl.textContent = 'Applying changes...';
                     showToast('Applying changes...', 'info');
-                    const restartParam = reconnectToggle && reconnectToggle.checked ? '?restart=1' : '';
-                    const applyRes = await fetch(`${apiBase}/restream/apply${restartParam}`, { method: 'POST' });
-                    if (!applyRes.ok) {
-                        const errorMessage = await getErrorMessage(applyRes);
-                        statusEl.textContent = 'Apply failed';
+                    const restarting = reconnectToggle && reconnectToggle.checked;
+                    const restartParam = restarting ? '?restart=1' : '';
+                    try {
+                        const applyRes = await fetch(`${apiBase}/restream/apply${restartParam}`, { method: 'POST' });
+                        if (!applyRes.ok) {
+                            if (restarting && [520, 521, 522, 523, 524].includes(applyRes.status)) {
+                                statusEl.textContent = 'Waiting for server...';
+                                showToast('Waiting for server to restart...', 'info');
+                                const recovered = await waitForOrigin();
+                                if (recovered) {
+                                    statusEl.textContent = '✓ Saved and applied successfully';
+                                    statusEl.className = 'status success';
+                                    showToast('Saved and applied successfully', 'success');
+                                    return;
+                                }
+                            }
+                            const errorMessage = await getErrorMessage(applyRes);
+                            statusEl.textContent = 'Apply failed';
+                            statusEl.className = 'status error';
+                            showToast(`Apply failed: ${errorMessage}`, 'error');
+                            return;
+                        }
+                        statusEl.textContent = '✓ Saved and applied successfully';
+                        statusEl.className = 'status success';
+                        showToast('Saved and applied successfully', 'success');
+                    } catch (err) {
+                        if (restarting) {
+                            statusEl.textContent = 'Waiting for server...';
+                            showToast('Waiting for server to restart...', 'info');
+                            const recovered = await waitForOrigin();
+                            if (recovered) {
+                                statusEl.textContent = '✓ Saved and applied successfully';
+                                statusEl.className = 'status success';
+                                showToast('Saved and applied successfully', 'success');
+                                return;
+                            }
+                        }
+                        statusEl.textContent = 'Network error';
                         statusEl.className = 'status error';
-                        showToast(`Apply failed: ${errorMessage}`, 'error');
-                        return;
+                        showToast('Network error', 'error');
                     }
-                    statusEl.textContent = '✓ Saved and applied successfully';
-                    statusEl.className = 'status success';
-                    showToast('Saved and applied successfully', 'success');
                     return;
                 }
 
