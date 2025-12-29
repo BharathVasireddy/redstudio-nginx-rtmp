@@ -56,6 +56,31 @@ if [ "${STASH_CREATED}" = "1" ]; then
     fi
 fi
 
+# Always keep core scripts in sync with repo for reliable deploys.
+FORCE_FILES=(
+    "deploy.sh"
+    "scripts/admin-api.py"
+    "scripts/restream-apply.sh"
+    "scripts/restream-generate.py"
+    "setup-oracle.sh"
+)
+BACKUP_DIR=""
+for file in "${FORCE_FILES[@]}"; do
+    if git diff --name-only -- "${file}" | grep -q . || git diff --cached --name-only -- "${file}" | grep -q .; then
+        if [ -z "${BACKUP_DIR}" ]; then
+            BACKUP_DIR="local-backup-$(date +%Y%m%d%H%M%S)"
+            mkdir -p "${BACKUP_DIR}"
+        fi
+        if [ -f "${file}" ]; then
+            cp -a "${file}" "${BACKUP_DIR}/${file//\//_}"
+        fi
+    fi
+done
+if [ -n "${BACKUP_DIR}" ]; then
+    echo "📦 Backed up local script overrides to ${BACKUP_DIR}"
+fi
+git checkout -- "${FORCE_FILES[@]}"
+
 # Ensure scripts are executable (kept for optional use)
 chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" \
   "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" \
