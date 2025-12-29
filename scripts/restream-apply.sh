@@ -8,6 +8,7 @@ CONF_FILE="${DATA_DIR}/restream.conf"
 STUNNEL_SNIPPET="${DATA_DIR}/stunnel-rtmps.conf"
 STUNNEL_CONF="/etc/stunnel/stunnel.conf"
 STUNNEL_MERGED="${DATA_DIR}/stunnel-rtmps.merged.conf"
+RTMPS_MARKER="${DATA_DIR}/rtmps-enabled"
 PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
 PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
@@ -111,6 +112,11 @@ if [ ! -f "${JSON_FILE}" ]; then
 fi
 
 python3 "${ROOT_DIR}/scripts/restream-generate.py" "${JSON_FILE}" "${CONF_FILE}" "${STUNNEL_SNIPPET}"
+if [ -f "${STUNNEL_SNIPPET}" ] && grep -q '^[[]' "${STUNNEL_SNIPPET}"; then
+    touch "${RTMPS_MARKER}"
+else
+    rm -f "${RTMPS_MARKER}"
+fi
 python3 - <<'PY' "${JSON_FILE}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}"
 import json
 import sys
