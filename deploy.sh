@@ -130,6 +130,18 @@ with open(public_hls_conf, "w", encoding="utf-8") as fh:
 PY
 fi
 
+if [ ! -f "${STUNNEL_CONF}" ]; then
+    if command -v stunnel4 >/dev/null 2>&1 || command -v stunnel >/dev/null 2>&1; then
+        sudo mkdir -p /etc/stunnel
+        if [ ! -f "${STUNNEL_CONF}" ]; then
+            sudo tee "${STUNNEL_CONF}" >/dev/null <<'EOF'
+pid = /run/stunnel4/stunnel.pid
+foreground = no
+EOF
+        fi
+    fi
+fi
+
 if [ -f "${STUNNEL_CONF}" ] && [ -f "${STUNNEL_SNIPPET}" ]; then
     STUNNEL_CHANGED="$(
         python3 - <<'PY' "${STUNNEL_CONF}" "${STUNNEL_SNIPPET}" "${STUNNEL_MERGED}"
