@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="${ROOT_DIR}/data"
 JSON_FILE="${DATA_DIR}/restream.json"
 CONF_FILE="${DATA_DIR}/restream.conf"
+STUNNEL_SNIPPET="${DATA_DIR}/stunnel-rtmps.conf"
+STUNNEL_CONF="/etc/stunnel/stunnel.conf"
 PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
 PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
@@ -107,7 +109,7 @@ if [ ! -f "${JSON_FILE}" ]; then
     cp "${ROOT_DIR}/config/restream.default.json" "${JSON_FILE}"
 fi
 
-python3 "${ROOT_DIR}/scripts/restream-generate.py" "${JSON_FILE}" "${CONF_FILE}"
+python3 "${ROOT_DIR}/scripts/restream-generate.py" "${JSON_FILE}" "${CONF_FILE}" "${STUNNEL_SNIPPET}"
 python3 - <<'PY' "${JSON_FILE}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}"
 import json
 import sys
@@ -146,6 +148,49 @@ fi
 
 if [ -x "${NGINX_BIN}" ]; then
     if ensure_sudo; then
+        if [ -f "${STUNNEL_CONF}" ] && [ -f "${STUNNEL_SNIPPET}" ]; then
+            STUNNEL_CHANGED="$(
+                python3 - <<'PY' "${STUNNEL_CONF}" "${STUNNEL_SNIPPET}"
+import sys
+from pathlib import Path
+
+conf_path = Path(sys.argv[1])
+snippet_path = Path(sys.argv[2])
+marker_begin = "# BEGIN REDSTUDIO RTMPS CLIENTS"
+marker_end = "# END REDSTUDIO RTMPS CLIENTS"
+
+conf_text = conf_path.read_text(encoding="utf-8") if conf_path.exists() else ""
+snippet = snippet_path.read_text(encoding="utf-8").strip()
+has_sections = any(line.startswith("[") for line in snippet.splitlines())
+
+block = ""
+if has_sections:
+    block_lines = [marker_begin, snippet, marker_end]
+    block = "\n".join(block_lines)
+
+if marker_begin in conf_text and marker_end in conf_text:
+    before, rest = conf_text.split(marker_begin, 1)
+    _, after = rest.split(marker_end, 1)
+    new_conf = before.rstrip() + ("\n" + block + "\n" if block else "\n") + after.lstrip()
+else:
+    if conf_text and not conf_text.endswith("\n"):
+        conf_text += "\n"
+    new_conf = conf_text + (block + "\n" if block else "")
+
+if new_conf != conf_text:
+    conf_path.write_text(new_conf, encoding="utf-8")
+    print("1")
+else:
+    print("0")
+PY
+            )"
+            if [ "${STUNNEL_CHANGED}" = "1" ]; then
+                if command -v systemctl >/dev/null 2>&1; then
+                    run_cmd systemctl restart stunnel4 || true
+                fi
+            fi
+        fi
+
         run_cmd "${NGINX_BIN}" -t
 
         if [ "${RESTART_NGINX:-0}" = "1" ]; then
