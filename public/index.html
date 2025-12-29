@@ -76,26 +76,31 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-            aspect-ratio: 16/9;
         }
 
-        /* Plyr player with 16:9 aspect ratio */
+        /* Plyr player with YouTube-like sizing */
         .plyr {
             width: 100%;
-            height: 100%;
+            aspect-ratio: 16/9;
             max-height: 55vh;
             background: #000;
+            position: relative;
         }
 
         .plyr video {
             width: 100%;
             height: 100%;
             display: block;
-            object-fit: contain;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         .plyr__video-wrapper {
             background: #000;
+            height: 100%;
+            width: 100%;
         }
 
         /* Responsive: full width on mobile */
