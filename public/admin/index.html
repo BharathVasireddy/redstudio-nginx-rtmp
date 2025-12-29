@@ -848,34 +848,47 @@
             </div>
         </div>
 
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <div class="card-header">
-                <h1 class="card-title">Live Visibility</h1>
-                <p class="card-subtitle">Control whether the live player appears on the public website.</p>
-            </div>
-            <div class="card-body">
-                <div class="platform-controls" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
-                    <div class="toggle-group">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="publicLiveToggle">
-                            <span class="slider"></span>
-                        </label>
-                        <span class="toggle-label" id="publicLiveLabel">Visible on website</span>
-                    </div>
-                    <div class="toggle-group">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="publicHlsToggle">
-                            <span class="slider"></span>
-                        </label>
-                        <span class="toggle-label" id="publicHlsLabel">Allow HLS access</span>
-                    </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">Live Visibility</h1>
+                    <p class="card-subtitle">Control whether the live player appears on the public website.</p>
                 </div>
-                <p class="card-subtitle" style="margin-top: 0.75rem;">
-                    When disabled, the public player shows “Live hidden” even if OBS is streaming.
-                </p>
-                <p class="card-subtitle" style="margin-top: 0.4rem;">
-                    Disabling HLS blocks `/hls/stream.m3u8`, embeds, and the fallback HLS player (requires Save & Apply).
-                </p>
+                <div class="card-body">
+                    <div class="platform-controls" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                        <div class="toggle-group">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="publicLiveToggle">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-label" id="publicLiveLabel">Visible on website</span>
+                        </div>
+                    </div>
+                    <p class="card-subtitle" style="margin-top: 0.75rem;">
+                        When disabled, the public player shows "Live hidden" even if OBS is streaming.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">HLS Access Control</h1>
+                    <p class="card-subtitle">Control public access to the HLS stream endpoints.</p>
+                </div>
+                <div class="card-body">
+                    <div class="platform-controls" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                        <div class="toggle-group">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="publicHlsToggle">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-label" id="publicHlsLabel">Allow HLS access</span>
+                        </div>
+                    </div>
+                    <p class="card-subtitle" style="margin-top: 0.75rem;">
+                        Disabling HLS blocks `/hls/stream.m3u8`, embeds, and the fallback HLS player (requires Save & Apply).
+                    </p>
+                </div>
             </div>
         </div>
 
