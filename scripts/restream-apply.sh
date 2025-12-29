@@ -7,6 +7,7 @@ JSON_FILE="${DATA_DIR}/restream.json"
 CONF_FILE="${DATA_DIR}/restream.conf"
 STUNNEL_SNIPPET="${DATA_DIR}/stunnel-rtmps.conf"
 STUNNEL_CONF="/etc/stunnel/stunnel.conf"
+STUNNEL_MERGED="${DATA_DIR}/stunnel-rtmps.merged.conf"
 PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
 PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
@@ -150,12 +151,13 @@ if [ -x "${NGINX_BIN}" ]; then
     if ensure_sudo; then
         if [ -f "${STUNNEL_CONF}" ] && [ -f "${STUNNEL_SNIPPET}" ]; then
             STUNNEL_CHANGED="$(
-                python3 - <<'PY' "${STUNNEL_CONF}" "${STUNNEL_SNIPPET}"
+                python3 - <<'PY' "${STUNNEL_CONF}" "${STUNNEL_SNIPPET}" "${STUNNEL_MERGED}"
 import sys
 from pathlib import Path
 
 conf_path = Path(sys.argv[1])
 snippet_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
 marker_begin = "# BEGIN REDSTUDIO RTMPS CLIENTS"
 marker_end = "# END REDSTUDIO RTMPS CLIENTS"
 
@@ -177,14 +179,12 @@ else:
         conf_text += "\n"
     new_conf = conf_text + (block + "\n" if block else "")
 
-if new_conf != conf_text:
-    conf_path.write_text(new_conf, encoding="utf-8")
-    print("1")
-else:
-    print("0")
+out_path.write_text(new_conf, encoding="utf-8")
+print("1" if new_conf != conf_text else "0")
 PY
             )"
             if [ "${STUNNEL_CHANGED}" = "1" ]; then
+                run_cmd /bin/cp "${STUNNEL_MERGED}" "${STUNNEL_CONF}"
                 if command -v systemctl >/dev/null 2>&1; then
                     run_cmd systemctl restart stunnel4 || true
                 fi
