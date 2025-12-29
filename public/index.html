@@ -613,6 +613,7 @@
         const viewerCountEl = document.getElementById('viewerCount');
         const viewerHintEl = document.getElementById('viewerHint');
         const liveSinceEl = document.getElementById('liveSince');
+        const streamStats = document.getElementById('streamStats');
         const mobileFallback = document.querySelector('.mobile-fallback');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         const VIEWER_URL = '/hls-viewers.json';
@@ -640,6 +641,13 @@
             }
         }
 
+        function setStatsVisibility(visible) {
+            if (!streamStats) {
+                return;
+            }
+            streamStats.style.display = visible ? '' : 'none';
+        }
+
         function applyPublicConfig(publicLive, publicHls) {
             publicLiveAllowed = publicLive !== false;
             publicHlsAllowed = publicHls !== false;
@@ -663,6 +671,7 @@
                 if (hls) {
                     hls.stopLoad();
                 }
+                setStatsVisibility(false);
                 return;
             }
             if (!publicHlsAllowed) {
@@ -684,6 +693,7 @@
                 if (hls) {
                     hls.stopLoad();
                 }
+                setStatsVisibility(false);
                 return;
             }
             setOfflineCopy(DEFAULT_OFFLINE_TITLE, DEFAULT_OFFLINE_HINT);
@@ -693,6 +703,7 @@
             if (liveBadge) {
                 liveBadge.style.display = 'none';
             }
+            setStatsVisibility(false);
             tryInitStream();
             attemptPlay();
         }
@@ -1120,8 +1131,10 @@
                         liveSinceEl.textContent = 'Offline';
                     }
                 }
+                setStatsVisibility(Boolean(data.active) && isStreamAllowed());
             } else if (liveSinceEl) {
                 liveSinceEl.textContent = '—';
+                setStatsVisibility(false);
             }
         }
 

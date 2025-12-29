@@ -211,6 +211,13 @@
             }
         }
 
+        function setStatsVisibility(visible) {
+            if (!statsPanel) {
+                return;
+            }
+            statsPanel.style.display = visible ? 'flex' : 'none';
+        }
+
         function showTapOverlay() {
             if (tapOverlay) {
                 tapOverlay.classList.remove('hidden');
@@ -381,6 +388,10 @@
                             liveSince.textContent = `Live since ${startedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                         }
                     }
+                    if (!data.active && liveSince) {
+                        liveSince.textContent = 'Offline';
+                    }
+                    setStatsVisibility(Boolean(data.active) && isStreamAllowed());
                 }
             } catch (err) {
                 // Ignore stats errors
@@ -396,6 +407,7 @@
                 if (liveBadge) {
                     liveBadge.classList.remove('show');
                 }
+                setStatsVisibility(false);
                 stopStream();
                 return;
             }
@@ -405,11 +417,13 @@
                 if (liveBadge) {
                     liveBadge.classList.remove('show');
                 }
+                setStatsVisibility(false);
                 stopStream();
                 return;
             }
             setOfflineCopy(DEFAULT_OFFLINE_TITLE, DEFAULT_OFFLINE_HINT);
             hideOfflineOverlay();
+            setStatsVisibility(false);
             startStream();
         }
 
@@ -435,10 +449,10 @@
             startStream();
         });
         loadStats();
-        if (showStats) {
-            setInterval(loadStats, 10000);
-        }
-        setInterval(loadPublicConfig, 15000);
+            if (showStats) {
+                setInterval(loadStats, 10000);
+            }
+            setInterval(loadPublicConfig, 15000);
 
         if (tapButton) {
             tapButton.addEventListener('click', () => {
