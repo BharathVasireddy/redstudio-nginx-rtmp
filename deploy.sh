@@ -20,6 +20,8 @@ ADMIN_HTPASSWD="${DATA_DIR}/admin.htpasswd"
 ADMIN_CREDS="${DATA_DIR}/admin.credentials"
 RESTREAM_JSON="${DATA_DIR}/restream.json"
 RESTREAM_CONF="${DATA_DIR}/restream.conf"
+STUNNEL_SNIPPET="${DATA_DIR}/stunnel-rtmps.conf"
+STUNNEL_CONF="/etc/stunnel/stunnel.conf"
 PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
 PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 
@@ -67,9 +69,7 @@ sudo chown -R "$(id -un)":"$(id -gn)" "${DATA_DIR}"
 if [ ! -f "${RESTREAM_JSON}" ]; then
     cp "${REPO_DIR}/config/restream.default.json" "${RESTREAM_JSON}"
 fi
-if [ ! -f "${RESTREAM_CONF}" ]; then
-    python3 "${REPO_DIR}/scripts/restream-generate.py" "${RESTREAM_JSON}" "${RESTREAM_CONF}"
-fi
+python3 "${REPO_DIR}/scripts/restream-generate.py" "${RESTREAM_JSON}" "${RESTREAM_CONF}" "${STUNNEL_SNIPPET}"
 if [ ! -f "${PUBLIC_CONFIG_FILE}" ] || [ ! -f "${PUBLIC_HLS_CONF_FILE}" ]; then
     python3 - <<'PY' "${RESTREAM_JSON}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}"
 import json
@@ -102,6 +102,47 @@ with open(public_config, "w", encoding="utf-8") as fh:
 with open(public_hls_conf, "w", encoding="utf-8") as fh:
     fh.write(f"set $public_hls {1 if public_hls else 0};\n")
 PY
+fi
+
+if [ -f "${STUNNEL_CONF}" ] && [ -f "${STUNNEL_SNIPPET}" ]; then
+    STUNNEL_CHANGED="$(
+        python3 - <<'PY' "${STUNNEL_CONF}" "${STUNNEL_SNIPPET}"
+import sys
+from pathlib import Path
+
+conf_path = Path(sys.argv[1])
+snippet_path = Path(sys.argv[2])
+marker_begin = "# BEGIN REDSTUDIO RTMPS CLIENTS"
+marker_end = "# END REDSTUDIO RTMPS CLIENTS"
+
+conf_text = conf_path.read_text(encoding="utf-8") if conf_path.exists() else ""
+snippet = snippet_path.read_text(encoding="utf-8").strip()
+has_sections = any(line.startswith("[") for line in snippet.splitlines())
+
+block = ""
+if has_sections:
+    block_lines = [marker_begin, snippet, marker_end]
+    block = "\n".join(block_lines)
+
+if marker_begin in conf_text and marker_end in conf_text:
+    before, rest = conf_text.split(marker_begin, 1)
+    _, after = rest.split(marker_end, 1)
+    new_conf = before.rstrip() + ("\n" + block + "\n" if block else "\n") + after.lstrip()
+else:
+    if conf_text and not conf_text.endswith("\n"):
+        conf_text += "\n"
+    new_conf = conf_text + (block + "\n" if block else "")
+
+if new_conf != conf_text:
+    conf_path.write_text(new_conf, encoding="utf-8")
+    print("1")
+else:
+    print("0")
+PY
+    )"
+    if [ "${STUNNEL_CHANGED}" = "1" ] && command -v systemctl >/dev/null 2>&1; then
+        sudo systemctl restart stunnel4 || true
+    fi
 fi
 
 # Create admin credentials if missing or secrets provided
