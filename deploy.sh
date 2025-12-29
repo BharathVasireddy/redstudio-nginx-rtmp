@@ -20,6 +20,8 @@ ADMIN_HTPASSWD="${DATA_DIR}/admin.htpasswd"
 ADMIN_CREDS="${DATA_DIR}/admin.credentials"
 RESTREAM_JSON="${DATA_DIR}/restream.json"
 RESTREAM_CONF="${DATA_DIR}/restream.conf"
+PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
+PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 
 echo "🚀 Deploying Red Studio updates..."
 
@@ -67,6 +69,39 @@ if [ ! -f "${RESTREAM_JSON}" ]; then
 fi
 if [ ! -f "${RESTREAM_CONF}" ]; then
     python3 "${REPO_DIR}/scripts/restream-generate.py" "${RESTREAM_JSON}" "${RESTREAM_CONF}"
+fi
+if [ ! -f "${PUBLIC_CONFIG_FILE}" ] || [ ! -f "${PUBLIC_HLS_CONF_FILE}" ]; then
+    python3 - <<'PY' "${RESTREAM_JSON}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}"
+import json
+import sys
+import time
+from datetime import datetime, timezone
+
+json_file, public_config, public_hls_conf = sys.argv[1], sys.argv[2], sys.argv[3]
+
+try:
+    with open(json_file, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except FileNotFoundError:
+    data = {}
+
+public_live = bool(data.get("public_live", True))
+public_hls = bool(data.get("public_hls", True))
+
+now = int(time.time())
+payload = {
+    "public_live": public_live,
+    "public_hls": public_hls,
+    "updated_at_epoch": now,
+    "updated_at": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+}
+
+with open(public_config, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh)
+
+with open(public_hls_conf, "w", encoding="utf-8") as fh:
+    fh.write(f"set $public_hls {1 if public_hls else 0};\n")
+PY
 fi
 
 # Create admin credentials if missing or secrets provided

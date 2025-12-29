@@ -92,6 +92,37 @@ prepare_local_files() {
     "${ROOT_DIR}/data/restream.json" \
     "${ROOT_DIR}/data/restream.conf"
   ln -sf "${ROOT_DIR}/data/restream.conf" "${ROOT_DIR}/conf/data/restream.conf"
+  "${PYTHON_BIN}" - <<'PY' "${ROOT_DIR}/data/restream.json" "${ROOT_DIR}/data/public-config.json" "${ROOT_DIR}/data/public-hls.conf"
+import json
+import sys
+import time
+from datetime import datetime, timezone
+
+json_file, public_config, public_hls_conf = sys.argv[1], sys.argv[2], sys.argv[3]
+
+try:
+    with open(json_file, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except FileNotFoundError:
+    data = {}
+
+public_live = bool(data.get("public_live", True))
+public_hls = bool(data.get("public_hls", True))
+
+now = int(time.time())
+payload = {
+    "public_live": public_live,
+    "public_hls": public_hls,
+    "updated_at_epoch": now,
+    "updated_at": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+}
+
+with open(public_config, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh)
+
+with open(public_hls_conf, "w", encoding="utf-8") as fh:
+    fh.write(f"set $public_hls {1 if public_hls else 0};\n")
+PY
 }
 
 generate_password() {

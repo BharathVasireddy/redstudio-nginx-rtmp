@@ -23,7 +23,7 @@ apt update && apt upgrade -y
 echo ""
 echo "📦 Installing build dependencies..."
 apt install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev \
-    libssl-dev libgd-dev libgeoip-dev git curl unzip
+    libssl-dev libgd-dev libgeoip-dev git curl unzip python3
 
 # Create web directory
 echo ""
@@ -81,6 +81,43 @@ echo ""
 echo "📁 Creating directories..."
 mkdir -p /var/www/nginx-rtmp-module/temp/hls
 mkdir -p /var/www/nginx-rtmp-module/logs
+mkdir -p /var/www/nginx-rtmp-module/data
+if [ ! -f /var/www/nginx-rtmp-module/data/restream.json ]; then
+    cp /var/www/nginx-rtmp-module/config/restream.default.json /var/www/nginx-rtmp-module/data/restream.json
+fi
+python3 /var/www/nginx-rtmp-module/scripts/restream-generate.py \
+    /var/www/nginx-rtmp-module/data/restream.json \
+    /var/www/nginx-rtmp-module/data/restream.conf
+python3 - <<'PY'
+import json
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+root = Path("/var/www/nginx-rtmp-module")
+data_dir = root / "data"
+config_file = data_dir / "restream.json"
+public_config = data_dir / "public-config.json"
+public_hls_conf = data_dir / "public-hls.conf"
+
+try:
+    data = json.loads(config_file.read_text(encoding="utf-8"))
+except FileNotFoundError:
+    data = {}
+
+public_live = bool(data.get("public_live", True))
+public_hls = bool(data.get("public_hls", True))
+
+now = int(time.time())
+payload = {
+    "public_live": public_live,
+    "public_hls": public_hls,
+    "updated_at_epoch": now,
+    "updated_at": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+}
+public_config.write_text(json.dumps(payload), encoding="utf-8")
+public_hls_conf.write_text(f"set $public_hls {1 if public_hls else 0};\n", encoding="utf-8")
+PY
 chown -R www-data:www-data /var/www/nginx-rtmp-module
 chmod -R 777 /var/www/nginx-rtmp-module/temp /var/www/nginx-rtmp-module/logs
 

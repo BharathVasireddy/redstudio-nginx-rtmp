@@ -7,6 +7,8 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $dataDir = Join-Path $Root "data"
 $jsonFile = Join-Path $dataDir "restream.json"
 $confFile = Join-Path $dataDir "restream.conf"
+$publicConfigFile = Join-Path $dataDir "public-config.json"
+$publicHlsConf = Join-Path $dataDir "public-hls.conf"
 $confCopy = Join-Path $Root "conf\data\restream.conf"
 $defaultConfig = Join-Path $Root "config\restream.default.json"
 $nginxExe = Join-Path $Root "nginx.exe"
@@ -57,6 +59,24 @@ if ($data -and $data.destinations) {
 
 $lines -join "`n" | Out-File -FilePath $confFile -Encoding ASCII -Force
 Copy-Item $confFile $confCopy -Force
+
+$publicLive = $true
+$publicHls = $true
+if ($data.PSObject.Properties.Name -contains "public_live") {
+    $publicLive = [bool]$data.public_live
+}
+if ($data.PSObject.Properties.Name -contains "public_hls") {
+    $publicHls = [bool]$data.public_hls
+}
+$timestamp = [DateTimeOffset]::UtcNow
+$publicPayload = [ordered]@{
+    public_live = $publicLive
+    public_hls = $publicHls
+    updated_at_epoch = [int]$timestamp.ToUnixTimeSeconds()
+    updated_at = $timestamp.ToString("o")
+}
+$publicPayload | ConvertTo-Json -Compress | Out-File -FilePath $publicConfigFile -Encoding ASCII -Force
+("set `$public_hls " + ($(if ($publicHls) { "1" } else { "0" })) + ";") | Out-File -FilePath $publicHlsConf -Encoding ASCII -Force
 
 if (!(Test-Path $nginxExe)) {
     Write-Error "nginx.exe not found in repo root."

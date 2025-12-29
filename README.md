@@ -110,6 +110,8 @@ ssh -i key.pem ubuntu@<server-ip> "sudo /var/www/nginx-rtmp-module/deploy.sh"
 - Admin UI: `https://live.cloud9digital.in/admin/`
 - Configure the ingest key in **Ingest Settings** (used by OBS).
 - Configure destinations, then Save & Apply to restream.
+- Use **Live Visibility** to show/hide the player on the public site.
+- Use **Allow HLS access** to block or allow direct HLS and embeds (requires Save & Apply).
 - Credentials are stored on the server at `data/admin.credentials` (created on first deploy).
 - Optional: set GitHub secrets `ADMIN_USER` and `ADMIN_PASSWORD` to override.
 - UI login uses a session cookie (no browser popup).

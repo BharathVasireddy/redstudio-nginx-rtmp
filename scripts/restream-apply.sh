@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="${ROOT_DIR}/data"
 JSON_FILE="${DATA_DIR}/restream.json"
 CONF_FILE="${DATA_DIR}/restream.conf"
+PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
+PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
 LOCAL_CONF="${ROOT_DIR}/conf/nginx.local.conf"
 
@@ -106,6 +108,37 @@ if [ ! -f "${JSON_FILE}" ]; then
 fi
 
 python3 "${ROOT_DIR}/scripts/restream-generate.py" "${JSON_FILE}" "${CONF_FILE}"
+python3 - <<'PY' "${JSON_FILE}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}"
+import json
+import sys
+import time
+from datetime import datetime, timezone
+
+json_file, public_config, public_hls_conf = sys.argv[1], sys.argv[2], sys.argv[3]
+
+try:
+    with open(json_file, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except FileNotFoundError:
+    data = {}
+
+public_live = bool(data.get("public_live", True))
+public_hls = bool(data.get("public_hls", True))
+
+now = int(time.time())
+payload = {
+    "public_live": public_live,
+    "public_hls": public_hls,
+    "updated_at_epoch": now,
+    "updated_at": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+}
+
+with open(public_config, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh)
+
+with open(public_hls_conf, "w", encoding="utf-8") as fh:
+    fh.write(f"set $public_hls {1 if public_hls else 0};\n")
+PY
 
 if [ ! -x "${NGINX_BIN}" ]; then
     NGINX_BIN="$(command -v nginx || true)"

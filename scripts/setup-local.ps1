@@ -131,6 +131,8 @@ function Ensure-RestreamConfig {
     $restreamConf = Join-Path $Root "data\restream.conf"
     $restreamDefault = Join-Path $Root "config\restream.default.json"
     $restreamConfCopy = Join-Path $Root "conf\data\restream.conf"
+    $publicConfig = Join-Path $Root "data\public-config.json"
+    $publicHlsConf = Join-Path $Root "data\public-hls.conf"
 
     if (!(Test-Path $restreamJson)) {
         Copy-Item $restreamDefault $restreamJson -Force
@@ -147,6 +149,30 @@ function Ensure-RestreamConfig {
     }
 
     Copy-Item $restreamConf $restreamConfCopy -Force
+
+    $publicLive = $true
+    $publicHls = $true
+    try {
+        $configData = Get-Content $restreamJson -Raw | ConvertFrom-Json
+        if ($configData.PSObject.Properties.Name -contains "public_live") {
+            $publicLive = [bool]$configData.public_live
+        }
+        if ($configData.PSObject.Properties.Name -contains "public_hls") {
+            $publicHls = [bool]$configData.public_hls
+        }
+    } catch {
+        $publicLive = $true
+        $publicHls = $true
+    }
+    $timestamp = [DateTimeOffset]::UtcNow
+    $publicPayload = [ordered]@{
+        public_live = $publicLive
+        public_hls = $publicHls
+        updated_at_epoch = [int]$timestamp.ToUnixTimeSeconds()
+        updated_at = $timestamp.ToString("o")
+    }
+    $publicPayload | ConvertTo-Json -Compress | Out-File -FilePath $publicConfig -Encoding ASCII -Force
+    ("set `$public_hls " + ($(if ($publicHls) { "1" } else { "0" })) + ";") | Out-File -FilePath $publicHlsConf -Encoding ASCII -Force
 }
 
 function New-Password {

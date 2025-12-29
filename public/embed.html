@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>U-RL.COM Live Embed</title>
+
+    <!-- Plyr -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #dc2626;
+            --plyr-color-main: #dc2626;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            background: #000;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            color: #fff;
+        }
+
+        .player-shell {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        .plyr,
+        .plyr__video-wrapper {
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        .plyr__control--overlaid {
+            display: none !important;
+        }
+
+        .plyr__progress,
+        .plyr__progress__container,
+        .plyr__time {
+            display: none !important;
+        }
+
+        .live-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(220, 38, 38, 0.95);
+            color: #fff;
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+        }
+
+        .live-badge.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stats-panel {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stats-panel strong {
+            font-size: 0.9rem;
+        }
+
+        .offline-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 5, 5, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: center;
+            padding: 1.5rem;
+            z-index: 5;
+        }
+
+        .offline-overlay.hidden {
+            display: none;
+        }
+
+        .tap-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 6;
+        }
+
+        .tap-overlay.hidden {
+            display: none;
+        }
+
+        .tap-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.75rem 1.6rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="player-shell">
+        <video id="player" playsinline></video>
+        <div class="live-badge" id="liveBadge">LIVE</div>
+        <div class="stats-panel" id="statsPanel">
+            <span><strong id="viewerCount">--</strong> watching</span>
+            <span id="liveSince">Live since --</span>
+        </div>
+        <div class="offline-overlay" id="offlineOverlay">
+            <strong id="offlineTitle">Stream Offline</strong>
+            <span id="offlineHint">Waiting for the broadcast.</span>
+        </div>
+        <div class="tap-overlay hidden" id="tapOverlay">
+            <button class="tap-button" id="tapButton" type="button">Tap to Play</button>
+        </div>
+    </div>
+
+    <!-- Plyr JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <!-- HLS.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const showControls = params.get('controls') !== '0';
+        const showBadge = params.get('badge') !== '0';
+        const showStats = params.get('stats') === '1';
+        const startMuted = params.get('muted') === '1';
+
+        const STREAM_URL = '/hls/stream.m3u8';
+        const PUBLIC_CONFIG_URL = '/public-config.json';
+        const videoElement = document.getElementById('player');
+        const liveBadge = document.getElementById('liveBadge');
+        const statsPanel = document.getElementById('statsPanel');
+        const viewerCount = document.getElementById('viewerCount');
+        const liveSince = document.getElementById('liveSince');
+        const offlineOverlay = document.getElementById('offlineOverlay');
+        const offlineTitle = document.getElementById('offlineTitle');
+        const offlineHint = document.getElementById('offlineHint');
+        const tapOverlay = document.getElementById('tapOverlay');
+        const tapButton = document.getElementById('tapButton');
+
+        const DEFAULT_OFFLINE_TITLE = 'Stream Offline';
+        const DEFAULT_OFFLINE_HINT = 'Waiting for the broadcast.';
+        const HIDDEN_TITLE = 'Live Hidden';
+        const HIDDEN_HINT = 'The stream is hidden by the admin.';
+        const HLS_DISABLED_TITLE = 'Stream Restricted';
+        const HLS_DISABLED_HINT = 'The HLS stream is disabled by the admin.';
+
+        if (!showBadge && liveBadge) {
+            liveBadge.style.display = 'none';
+        }
+        if (!showStats && statsPanel) {
+            statsPanel.style.display = 'none';
+        }
+
+        let hls = null;
+        let player = null;
+        let publicLiveAllowed = true;
+        let publicHlsAllowed = true;
+        let streamStarted = false;
+
+        function setOfflineCopy(title, hint) {
+            if (offlineTitle) {
+                offlineTitle.textContent = title;
+            }
+            if (offlineHint) {
+                offlineHint.textContent = hint;
+            }
+        }
+
+        function showTapOverlay() {
+            if (tapOverlay) {
+                tapOverlay.classList.remove('hidden');
+            }
+        }
+
+        function hideTapOverlay() {
+            if (tapOverlay) {
+                tapOverlay.classList.add('hidden');
+            }
+        }
+
+        function showOfflineOverlay() {
+            if (offlineOverlay) {
+                offlineOverlay.classList.remove('hidden');
+            }
+        }
+
+        function hideOfflineOverlay() {
+            if (offlineOverlay) {
+                offlineOverlay.classList.add('hidden');
+            }
+        }
+
+        function isStreamAllowed() {
+            return publicLiveAllowed && publicHlsAllowed;
+        }
+
+        function attemptPlay() {
+            if (!isStreamAllowed()) {
+                return;
+            }
+            if (!player) {
+                return;
+            }
+            if (startMuted) {
+                player.muted = true;
+            }
+            const promise = player.play();
+            if (promise && typeof promise.catch === 'function') {
+                promise.catch(() => {
+                    showTapOverlay();
+                });
+            }
+        }
+
+        function handleHlsError(data) {
+            if (!data || !data.fatal) {
+                return;
+            }
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hls) {
+                hls.startLoad();
+                return;
+            }
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hls) {
+                hls.recoverMediaError();
+                return;
+            }
+            showOfflineOverlay();
+        }
+
+        function stopStream() {
+            if (player && typeof player.pause === 'function') {
+                player.pause();
+            }
+            if (hls) {
+                hls.stopLoad();
+            }
+        }
+
+        function startStream() {
+            if (!isStreamAllowed()) {
+                return;
+            }
+            if (streamStarted) {
+                if (hls) {
+                    hls.startLoad();
+                }
+                attemptPlay();
+                return;
+            }
+            attachSource(STREAM_URL);
+            streamStarted = true;
+            attemptPlay();
+        }
+
+        function attachSource(url) {
+            if (window.Hls && Hls.isSupported()) {
+                hls = new Hls({
+                    lowLatencyMode: false,
+                    maxBufferLength: 30,
+                    backBufferLength: 30,
+                    liveSyncDurationCount: 2,
+                    liveMaxLatencyDurationCount: 6
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => handleHlsError(data));
+                hls.loadSource(url);
+                hls.attachMedia(videoElement);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    hideOfflineOverlay();
+                    attemptPlay();
+                });
+                return;
+            }
+
+            if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                videoElement.src = url;
+                return;
+            }
+            showOfflineOverlay();
+        }
+
+        function initPlayer() {
+            const controls = showControls ? ['play', 'mute', 'volume', 'fullscreen'] : [];
+            player = new Plyr(videoElement, {
+                autoplay: startMuted,
+                muted: startMuted,
+                clickToPlay: true,
+                controls
+            });
+
+            if (showBadge && liveBadge) {
+                if (showControls) {
+                    player.on('controlsshown', () => {
+                        if (isStreamAllowed()) {
+                            liveBadge.classList.add('show');
+                        }
+                    });
+                    player.on('controlshidden', () => liveBadge.classList.remove('show'));
+                } else {
+                    liveBadge.classList.add('show');
+                }
+            }
+
+            player.on('playing', () => {
+                hideOfflineOverlay();
+                hideTapOverlay();
+            });
+
+            player.on('error', showOfflineOverlay);
+        }
+
+        async function loadStats() {
+            if (!showStats) {
+                return;
+            }
+            try {
+                const res = await fetch('/hls-viewers.json', { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (viewerCount && typeof data.viewer_ips === 'number') {
+                        viewerCount.textContent = data.viewer_ips.toString();
+                    }
+                }
+            } catch (err) {
+                // Ignore stats errors
+            }
+
+            try {
+                const res = await fetch('/stream-status.json', { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (liveSince) {
+                        const startedAt = data.started_at_epoch
+                            ? new Date(data.started_at_epoch * 1000)
+                            : (data.started_at ? new Date(data.started_at) : null);
+                        if (startedAt && !Number.isNaN(startedAt.getTime())) {
+                            liveSince.textContent = `Live since ${startedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                        }
+                    }
+                }
+            } catch (err) {
+                // Ignore stats errors
+            }
+        }
+
+        function applyPublicVisibility(publicLive, publicHls) {
+            publicLiveAllowed = publicLive !== false;
+            publicHlsAllowed = publicHls !== false;
+            if (!publicLiveAllowed) {
+                setOfflineCopy(HIDDEN_TITLE, HIDDEN_HINT);
+                showOfflineOverlay();
+                if (liveBadge) {
+                    liveBadge.classList.remove('show');
+                }
+                stopStream();
+                return;
+            }
+            if (!publicHlsAllowed) {
+                setOfflineCopy(HLS_DISABLED_TITLE, HLS_DISABLED_HINT);
+                showOfflineOverlay();
+                if (liveBadge) {
+                    liveBadge.classList.remove('show');
+                }
+                stopStream();
+                return;
+            }
+            setOfflineCopy(DEFAULT_OFFLINE_TITLE, DEFAULT_OFFLINE_HINT);
+            hideOfflineOverlay();
+            startStream();
+        }
+
+        async function loadPublicConfig() {
+            try {
+                const res = await fetch(PUBLIC_CONFIG_URL, { cache: 'no-store' });
+                if (!res.ok) {
+                    return;
+                }
+                const data = await res.json();
+                applyPublicVisibility(
+                    typeof data.public_live === 'boolean' ? data.public_live : true,
+                    typeof data.public_hls === 'boolean' ? data.public_hls : true
+                );
+            } catch (err) {
+                // Ignore public config errors
+            }
+        }
+
+        initPlayer();
+        setOfflineCopy(DEFAULT_OFFLINE_TITLE, DEFAULT_OFFLINE_HINT);
+        loadPublicConfig().finally(() => {
+            startStream();
+        });
+        loadStats();
+        if (showStats) {
+            setInterval(loadStats, 10000);
+        }
+        setInterval(loadPublicConfig, 15000);
+
+        if (tapButton) {
+            tapButton.addEventListener('click', () => {
+                hideTapOverlay();
+                attemptPlay();
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 {
   "ingest_key": "",
+  "public_live": true,
+  "public_hls": true,
   "destinations": [
     {
       "id": "youtube",

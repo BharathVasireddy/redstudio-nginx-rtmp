@@ -93,28 +93,65 @@
         const player = document.getElementById('hlsPlayer');
         const statusText = document.getElementById('statusText');
         const sourceUrl = '/hls/stream.m3u8';
+        const publicConfigUrl = '/public-config.json';
+        const links = document.querySelector('.links');
 
         function setStatus(message) {
             statusText.textContent = message;
         }
 
-        if (player.canPlayType('application/vnd.apple.mpegurl')) {
-            player.src = sourceUrl;
-            setStatus('Tap play to start the stream.');
-        } else if (window.Hls && Hls.isSupported()) {
-            const hls = new Hls({
-                maxBufferLength: 20,
-                liveSyncDuration: 12
-            });
-            hls.loadSource(sourceUrl);
-            hls.attachMedia(player);
-            hls.on(Hls.Events.ERROR, () => {
-                setStatus('Stream error. Please retry or open the direct playlist.');
-            });
-            setStatus('Tap play to start the stream.');
-        } else {
+        async function loadPublicConfig() {
+            try {
+                const res = await fetch(publicConfigUrl, { cache: 'no-store' });
+                if (!res.ok) {
+                    return true;
+                }
+                const data = await res.json();
+                if (typeof data.public_hls === 'boolean') {
+                    return data.public_hls;
+                }
+            } catch (err) {
+                // Ignore config errors
+            }
+            return true;
+        }
+
+        async function initPlayer() {
+            const isHlsAllowed = await loadPublicConfig();
+            if (!isHlsAllowed) {
+                player.removeAttribute('src');
+                player.style.display = 'none';
+                if (links) {
+                    links.style.display = 'none';
+                }
+                setStatus('HLS access is disabled by the admin.');
+                return;
+            }
+
+            if (player.canPlayType('application/vnd.apple.mpegurl')) {
+                player.src = sourceUrl;
+                setStatus('Tap play to start the stream.');
+                return;
+            }
+
+            if (window.Hls && Hls.isSupported()) {
+                const hls = new Hls({
+                    maxBufferLength: 20,
+                    liveSyncDuration: 12
+                });
+                hls.loadSource(sourceUrl);
+                hls.attachMedia(player);
+                hls.on(Hls.Events.ERROR, () => {
+                    setStatus('Stream error. Please retry or open the direct playlist.');
+                });
+                setStatus('Tap play to start the stream.');
+                return;
+            }
+
             setStatus('HLS is not supported in this browser.');
         }
+
+        initPlayer();
     </script>
 </body>
 </html>

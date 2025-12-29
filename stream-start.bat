@@ -22,6 +22,8 @@ if not "%PYTHON_EXE%"=="" (
   if not exist data\restream.conf echo ## Auto-generated (python not found) > data\restream.conf
 )
 copy /y data\restream.conf conf\data\restream.conf >nul 2>&1
+if not exist data\public-hls.conf echo set $public_hls 1;> data\public-hls.conf
+if not exist data\public-config.json echo {"public_live":true,"public_hls":true}> data\public-config.json
 
 if not exist data\admin.credentials (
   set ADMIN_PASS=

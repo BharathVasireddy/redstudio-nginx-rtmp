@@ -850,6 +850,37 @@
 
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-header">
+                <h1 class="card-title">Live Visibility</h1>
+                <p class="card-subtitle">Control whether the live player appears on the public website.</p>
+            </div>
+            <div class="card-body">
+                <div class="platform-controls" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                    <div class="toggle-group">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="publicLiveToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label" id="publicLiveLabel">Visible on website</span>
+                    </div>
+                    <div class="toggle-group">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="publicHlsToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label" id="publicHlsLabel">Allow HLS access</span>
+                    </div>
+                </div>
+                <p class="card-subtitle" style="margin-top: 0.75rem;">
+                    When disabled, the public player shows “Live hidden” even if OBS is streaming.
+                </p>
+                <p class="card-subtitle" style="margin-top: 0.4rem;">
+                    Disabling HLS blocks `/hls/stream.m3u8`, embeds, and the fallback HLS player (requires Save & Apply).
+                </p>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
                 <h1 class="card-title">Server Health</h1>
                 <p class="card-subtitle">CPU, memory, disk, and network usage.</p>
             </div>
@@ -974,6 +1005,10 @@
         const ingestKeyInput = document.getElementById('ingestKey');
         const generateKeyBtn = document.getElementById('generateKeyBtn');
         const copyKeyBtn = document.getElementById('copyKeyBtn');
+        const publicLiveToggle = document.getElementById('publicLiveToggle');
+        const publicLiveLabel = document.getElementById('publicLiveLabel');
+        const publicHlsToggle = document.getElementById('publicHlsToggle');
+        const publicHlsLabel = document.getElementById('publicHlsLabel');
         const metricsStatus = document.getElementById('metricsStatus');
         const cpuValue = document.getElementById('cpuValue');
         const cpuSub = document.getElementById('cpuSub');
@@ -1033,7 +1068,7 @@
             }
         ];
 
-        let state = { destinations: [], ingest_key: '' };
+        let state = { destinations: [], ingest_key: '', public_live: true, public_hls: true };
 
         function getIngestUrl() {
             const host = window.location.hostname;
@@ -1227,6 +1262,22 @@
             if (ingestKeyInput) {
                 ingestKeyInput.value = state.ingest_key || '';
             }
+            if (publicLiveToggle) {
+                publicLiveToggle.checked = state.public_live !== false;
+            }
+            if (publicLiveLabel) {
+                publicLiveLabel.textContent = state.public_live !== false
+                    ? 'Visible on website'
+                    : 'Hidden on website';
+            }
+            if (publicHlsToggle) {
+                publicHlsToggle.checked = state.public_hls !== false;
+            }
+            if (publicHlsLabel) {
+                publicHlsLabel.textContent = state.public_hls !== false
+                    ? 'Allow HLS access'
+                    : 'Block HLS access';
+            }
             state.destinations.forEach((dest, index) => {
                 const row = document.createElement('div');
                 row.className = `platform-row${dest.enabled ? ' is-enabled' : ''}`;
@@ -1387,12 +1438,18 @@
                 if (!state.ingest_key) {
                     state.ingest_key = '';
                 }
+                if (typeof state.public_live !== 'boolean') {
+                    state.public_live = true;
+                }
+                if (typeof state.public_hls !== 'boolean') {
+                    state.public_hls = true;
+                }
                 state.destinations = mergeDefaults(state.destinations);
                 render();
             } catch (err) {
                 statusEl.textContent = 'Using default configuration';
                 statusEl.className = 'status error';
-                state = { destinations: mergeDefaults([]), ingest_key: '' };
+                state = { destinations: mergeDefaults([]), ingest_key: '', public_live: true, public_hls: true };
                 render();
                 showToast('Admin API not reachable. Showing defaults.', 'error');
             }
@@ -1503,6 +1560,26 @@
         if (ingestKeyInput) {
             ingestKeyInput.addEventListener('input', (event) => {
                 state.ingest_key = event.target.value;
+            });
+        }
+        if (publicLiveToggle) {
+            publicLiveToggle.addEventListener('change', () => {
+                state.public_live = publicLiveToggle.checked;
+                if (publicLiveLabel) {
+                    publicLiveLabel.textContent = state.public_live
+                        ? 'Visible on website'
+                        : 'Hidden on website';
+                }
+            });
+        }
+        if (publicHlsToggle) {
+            publicHlsToggle.addEventListener('change', () => {
+                state.public_hls = publicHlsToggle.checked;
+                if (publicHlsLabel) {
+                    publicHlsLabel.textContent = state.public_hls
+                        ? 'Allow HLS access'
+                        : 'Block HLS access';
+                }
             });
         }
         if (generateKeyBtn) {
@@ -1669,6 +1746,6 @@
     <!-- Plyr JS -->
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <!-- HLS.js -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 </body>
 </html>

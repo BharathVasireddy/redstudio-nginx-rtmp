@@ -22,6 +22,8 @@ DATA_DIR = ROOT_DIR / "data"
 CONFIG_PATH = DATA_DIR / "restream.json"
 DEFAULT_CONFIG = ROOT_DIR / "config" / "restream.default.json"
 STREAM_STATUS_PATH = DATA_DIR / "stream-status.json"
+PUBLIC_CONFIG_PATH = DATA_DIR / "public-config.json"
+PUBLIC_HLS_CONF_PATH = DATA_DIR / "public-hls.conf"
 IS_WINDOWS = os.name == "nt"
 APPLY_SCRIPT = ROOT_DIR / "scripts" / ("restream-apply.ps1" if IS_WINDOWS else "restream-apply.sh")
 STREAM_APP = os.environ.get("STREAM_APP", "live")
@@ -89,6 +91,22 @@ def write_stream_status(active: bool, started_at: Optional[int] = None, ended_at
     tmp_path.replace(STREAM_STATUS_PATH)
 
 
+def write_public_config(public_live: bool, public_hls: bool) -> None:
+    now = now_ts()
+    payload = {
+        "public_live": bool(public_live),
+        "public_hls": bool(public_hls),
+        "updated_at_epoch": now,
+        "updated_at": iso_from_ts(now),
+    }
+    PUBLIC_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = PUBLIC_CONFIG_PATH.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(payload), encoding="utf-8")
+    tmp_path.replace(PUBLIC_CONFIG_PATH)
+    hls_value = "1" if public_hls else "0"
+    PUBLIC_HLS_CONF_PATH.write_text(f"set $public_hls {hls_value};\n", encoding="utf-8")
+
+
 def sanitize_destination(dest: dict) -> dict:
     allowed_keys = {"id", "name", "enabled", "rtmp_url", "stream_key"}
     clean = {k: dest.get(k) for k in allowed_keys}
@@ -109,15 +127,26 @@ def load_config() -> dict:
     if not CONFIG_PATH.exists() and DEFAULT_CONFIG.exists():
         CONFIG_PATH.write_text(DEFAULT_CONFIG.read_text(encoding="utf-8"), encoding="utf-8")
     if not CONFIG_PATH.exists():
-        return {"destinations": [], "ingest_key": ""}
+        return {"destinations": [], "ingest_key": "", "public_live": True, "public_hls": True}
     payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     if "ingest_key" not in payload:
         payload["ingest_key"] = ""
+    if "public_live" not in payload:
+        payload["public_live"] = True
+    else:
+        payload["public_live"] = bool(payload["public_live"])
+    if "public_hls" not in payload:
+        payload["public_hls"] = True
+    else:
+        payload["public_hls"] = bool(payload["public_hls"])
     return payload
 
 
 if not STREAM_STATUS_PATH.exists():
     write_stream_status(False)
+if not PUBLIC_CONFIG_PATH.exists():
+    config = load_config()
+    write_public_config(config.get("public_live", True), config.get("public_hls", True))
 
 
 def save_config(payload: dict) -> None:
@@ -132,10 +161,21 @@ def save_config(payload: dict) -> None:
     ingest_key = str(ingest_key).strip()
     if any(ch in ingest_key for ch in ["\n", "\r", ";", " "]):
         ingest_key = ""
+    public_live = bool(payload.get("public_live", existing.get("public_live", True)))
+    public_hls = bool(payload.get("public_hls", existing.get("public_hls", True)))
     CONFIG_PATH.write_text(
-        json.dumps({"destinations": cleaned, "ingest_key": ingest_key}, indent=2),
+        json.dumps(
+            {
+                "destinations": cleaned,
+                "ingest_key": ingest_key,
+                "public_live": public_live,
+                "public_hls": public_hls,
+            },
+            indent=2,
+        ),
         encoding="utf-8",
     )
+    write_public_config(public_live, public_hls)
 
 
 def load_ingest_key() -> str:

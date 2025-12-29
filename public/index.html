@@ -304,6 +304,17 @@
             opacity: 0.4;
         }
 
+        .offline-title {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .offline-hint {
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
         .tap-overlay {
             position: absolute;
             inset: 0;
@@ -527,7 +538,8 @@
                 <polygon points="23 7 16 12 23 17 23 7" />
                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
-            <span>Stream Offline</span>
+            <span class="offline-title" id="offlineTitle">Stream Offline</span>
+            <span class="offline-hint" id="offlineHint">Waiting for broadcast.</span>
         </div>
         </div>
 
@@ -591,6 +603,8 @@
         const STREAM_URL = '/hls/stream.m3u8';
 
         const offlineOverlay = document.getElementById('offlineOverlay');
+        const offlineTitle = document.getElementById('offlineTitle');
+        const offlineHint = document.getElementById('offlineHint');
         const tapOverlay = document.getElementById('tapOverlay');
         const audioPrompt = document.getElementById('audioPrompt');
         const bufferingOverlay = document.getElementById('bufferingOverlay');
@@ -599,9 +613,105 @@
         const viewerCountEl = document.getElementById('viewerCount');
         const viewerHintEl = document.getElementById('viewerHint');
         const liveSinceEl = document.getElementById('liveSince');
+        const mobileFallback = document.querySelector('.mobile-fallback');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         const VIEWER_URL = '/hls-viewers.json';
         const STATUS_URL = '/stream-status.json';
+        const PUBLIC_CONFIG_URL = '/public-config.json';
+        let publicLiveAllowed = true;
+        let publicHlsAllowed = true;
+        const DEFAULT_OFFLINE_TITLE = 'Stream Offline';
+        const DEFAULT_OFFLINE_HINT = 'Waiting for broadcast. Tap the video to retry.';
+        const HIDDEN_TITLE = 'Live Hidden';
+        const HIDDEN_HINT = 'The stream is hidden by the admin.';
+        const HLS_DISABLED_TITLE = 'Stream Restricted';
+        const HLS_DISABLED_HINT = 'The HLS stream is disabled by the admin.';
+
+        function isStreamAllowed() {
+            return publicLiveAllowed && publicHlsAllowed;
+        }
+
+        function setOfflineCopy(title, hint) {
+            if (offlineTitle) {
+                offlineTitle.textContent = title;
+            }
+            if (offlineHint) {
+                offlineHint.textContent = hint;
+            }
+        }
+
+        function applyPublicConfig(publicLive, publicHls) {
+            publicLiveAllowed = publicLive !== false;
+            publicHlsAllowed = publicHls !== false;
+            if (!publicLiveAllowed) {
+                setOfflineCopy(HIDDEN_TITLE, HIDDEN_HINT);
+                if (offlineOverlay) {
+                    offlineOverlay.classList.remove('hidden');
+                }
+                if (liveBadge) {
+                    liveBadge.classList.remove('show');
+                    liveBadge.style.display = 'none';
+                }
+                hideTapOverlay();
+                hideBuffering();
+                if (mobileFallback) {
+                    mobileFallback.style.display = 'none';
+                }
+                if (player && typeof player.pause === 'function') {
+                    player.pause();
+                }
+                if (hls) {
+                    hls.stopLoad();
+                }
+                return;
+            }
+            if (!publicHlsAllowed) {
+                setOfflineCopy(HLS_DISABLED_TITLE, HLS_DISABLED_HINT);
+                if (offlineOverlay) {
+                    offlineOverlay.classList.remove('hidden');
+                }
+                if (liveBadge) {
+                    liveBadge.classList.remove('show');
+                    liveBadge.style.display = 'none';
+                }
+                hideTapOverlay();
+                if (mobileFallback) {
+                    mobileFallback.style.display = 'none';
+                }
+                if (player && typeof player.pause === 'function') {
+                    player.pause();
+                }
+                if (hls) {
+                    hls.stopLoad();
+                }
+                return;
+            }
+            setOfflineCopy(DEFAULT_OFFLINE_TITLE, DEFAULT_OFFLINE_HINT);
+            if (mobileFallback) {
+                mobileFallback.style.display = '';
+            }
+            if (liveBadge) {
+                liveBadge.style.display = 'none';
+            }
+            tryInitStream();
+            attemptPlay();
+        }
+
+        async function loadPublicConfig() {
+            try {
+                const res = await fetch(PUBLIC_CONFIG_URL, { cache: 'no-store' });
+                if (!res.ok) {
+                    return;
+                }
+                const data = await res.json();
+                applyPublicConfig(
+                    typeof data.public_live === 'boolean' ? data.public_live : true,
+                    typeof data.public_hls === 'boolean' ? data.public_hls : true
+                );
+            } catch (err) {
+                // Ignore public config errors
+            }
+        }
 
         function bindMediaEvents() {
             if (mediaEventsBound || !videoElement) {
@@ -610,12 +720,23 @@
             mediaEventsBound = true;
 
             videoElement.addEventListener('playing', () => {
+                if (!isStreamAllowed()) {
+                    if (player && typeof player.pause === 'function') {
+                        player.pause();
+                    } else if (videoElement) {
+                        videoElement.pause();
+                    }
+                    return;
+                }
                 offlineOverlay.classList.add('hidden');
                 setReconnectState(false);
                 hideTapOverlay();
                 applyPreferredAudio();
                 consecutiveErrors = 0;
                 hideBuffering();
+                if (liveBadge) {
+                    liveBadge.style.display = 'inline-flex';
+                }
                 if (wasReconnecting) {
                     showToast('Reconnected');
                     wasReconnecting = false;
@@ -625,14 +746,24 @@
             videoElement.addEventListener('error', () => {
                 console.log('Player error, will retry');
                 consecutiveErrors += 1;
+                hideBuffering();
+                offlineOverlay.classList.remove('hidden');
+                hideTapOverlay();
+                if (liveBadge) {
+                    liveBadge.style.display = 'none';
+                }
                 scheduleReconnect();
-                showTapOverlay();
             });
 
             videoElement.addEventListener('stalled', () => {
                 setTimeout(() => {
                     if (videoElement && videoElement.readyState < 2) {
-                        showBuffering();
+                        if (consecutiveErrors > 0) {
+                            hideBuffering();
+                            offlineOverlay.classList.remove('hidden');
+                        } else {
+                            showBuffering();
+                        }
                         scheduleReconnect();
                     }
                 }, 2000);
@@ -640,7 +771,12 @@
 
             videoElement.addEventListener('waiting', () => {
                 setReconnectState(true);
-                showBuffering();
+                if (consecutiveErrors > 0) {
+                    hideBuffering();
+                    offlineOverlay.classList.remove('hidden');
+                } else {
+                    showBuffering();
+                }
             });
 
             videoElement.addEventListener('loadedmetadata', () => {
@@ -650,7 +786,9 @@
             });
 
             videoElement.addEventListener('pause', () => {
-                showTapOverlay();
+                if (consecutiveErrors === 0 && isStreamAllowed()) {
+                    showTapOverlay();
+                }
             });
 
             videoElement.addEventListener('volumechange', () => {
@@ -663,7 +801,7 @@
                 return;
             }
             player.on('controlsshown', () => {
-                if (liveBadge) {
+                if (liveBadge && isStreamAllowed()) {
                     liveBadge.classList.add('show');
                 }
             });
@@ -687,6 +825,11 @@
                 return;
             }
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                hideBuffering();
+                offlineOverlay.classList.remove('hidden');
+                if (liveBadge) {
+                    liveBadge.style.display = 'none';
+                }
                 hls.startLoad();
                 scheduleReconnect();
                 return;
@@ -694,6 +837,11 @@
             if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                 hls.recoverMediaError();
                 return;
+            }
+            hideBuffering();
+            offlineOverlay.classList.remove('hidden');
+            if (liveBadge) {
+                liveBadge.style.display = 'none';
             }
             hls.destroy();
             hls = null;
@@ -759,6 +907,9 @@
         }
 
         function setReconnectState(active) {
+            if (!isStreamAllowed()) {
+                return;
+            }
             isReconnecting = active;
             if (active) {
                 if (consecutiveErrors >= 2) {
@@ -774,6 +925,9 @@
         }
 
         function tryInitStream() {
+            if (!isStreamAllowed()) {
+                return;
+            }
             const now = Date.now();
             if (now < suspendReconnectUntil) {
                 return;
@@ -787,6 +941,9 @@
         }
 
         function scheduleReconnect() {
+            if (!isStreamAllowed()) {
+                return;
+            }
             if (Date.now() < suspendReconnectUntil) {
                 return;
             }
@@ -820,6 +977,9 @@
         }
 
         function attemptPlay() {
+            if (!isStreamAllowed()) {
+                return;
+            }
             const target = player || videoElement;
             if (!target || typeof target.play !== 'function') {
                 return;
@@ -827,7 +987,10 @@
             const playPromise = target.play();
             if (playPromise && typeof playPromise.catch === 'function') {
                 playPromise.catch(() => {
-                    showTapOverlay();
+                    // Only show tap overlay if stream is available (no errors)
+                    if (consecutiveErrors === 0) {
+                        showTapOverlay();
+                    }
                 });
             }
         }
@@ -963,13 +1126,24 @@
         }
 
         // Start player
-        tryInitStream();
-        showTapOverlay();
+        if (liveBadge) {
+            liveBadge.style.display = 'none';
+        }
+        hideBuffering();
+        hideTapOverlay();
+        setOfflineCopy(DEFAULT_OFFLINE_TITLE, DEFAULT_OFFLINE_HINT);
+        loadPublicConfig().finally(() => {
+            if (isStreamAllowed()) {
+                tryInitStream();
+                showTapOverlay();
+            }
+        });
         updateStats();
         setInterval(updateStats, 15000);
+        setInterval(loadPublicConfig, 15000);
 
         function handleVisibility() {
-            if (document.visibilityState === 'visible') {
+            if (document.visibilityState === 'visible' && isStreamAllowed()) {
                 // Only resume playback, don't reinitialize stream
                 attemptPlay();
             }
@@ -978,14 +1152,23 @@
         window.addEventListener('focus', handleVisibility);
         document.addEventListener('visibilitychange', handleVisibility);
         window.addEventListener('online', () => {
+            if (!isStreamAllowed()) {
+                return;
+            }
             tryInitStream();
             attemptPlay();
         });
         window.addEventListener('offline', () => {
+            if (!isStreamAllowed()) {
+                return;
+            }
             setReconnectState(true);
         });
         if (navigator.connection && navigator.connection.addEventListener) {
             navigator.connection.addEventListener('change', () => {
+                if (!isStreamAllowed()) {
+                    return;
+                }
                 tryInitStream();
                 attemptPlay();
             });
@@ -993,14 +1176,29 @@
 
         // Allow tap-to-play on mobile if autoplay is blocked
         offlineOverlay.addEventListener('click', () => {
+            if (!isStreamAllowed()) {
+                setOfflineCopy(
+                    publicLiveAllowed ? HLS_DISABLED_TITLE : HIDDEN_TITLE,
+                    publicLiveAllowed ? HLS_DISABLED_HINT : HIDDEN_HINT
+                );
+                offlineOverlay.classList.remove('hidden');
+                return;
+            }
             consecutiveErrors = 0;
-            offlineOverlay.classList.add('hidden');
             tryInitStream();
             attemptPlay();
         });
 
         if (tapOverlay) {
             tapOverlay.addEventListener('click', () => {
+                if (!isStreamAllowed()) {
+                    setOfflineCopy(
+                        publicLiveAllowed ? HLS_DISABLED_TITLE : HIDDEN_TITLE,
+                        publicLiveAllowed ? HLS_DISABLED_HINT : HIDDEN_HINT
+                    );
+                    offlineOverlay.classList.remove('hidden');
+                    return;
+                }
                 hideTapOverlay();
                 tryInitStream();
                 attemptPlay();
