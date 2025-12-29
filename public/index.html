@@ -26,6 +26,7 @@
             --text-muted: #718096;
             --border: #e2e8f0;
             --plyr-color-main: #dc2626;
+            --stream-aspect: 16 / 9;
         }
 
         body {
@@ -76,13 +77,14 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+            aspect-ratio: var(--stream-aspect);
         }
 
         /* Plyr player with YouTube-like sizing */
         .plyr {
             width: 100%;
-            aspect-ratio: 16/9;
-            max-height: 55vh;
+            height: 100%;
+            max-height: none;
             background: #000;
             position: relative;
         }
@@ -91,7 +93,7 @@
             width: 100%;
             height: 100%;
             display: block;
-            object-fit: cover;
+            object-fit: contain;
             position: absolute;
             top: 0;
             left: 0;
@@ -729,6 +731,14 @@
             }
         }
 
+        function updateAspectRatio() {
+            if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) {
+                return;
+            }
+            const ratio = `${videoElement.videoWidth} / ${videoElement.videoHeight}`;
+            document.documentElement.style.setProperty('--stream-aspect', ratio);
+        }
+
         function bindMediaEvents() {
             if (mediaEventsBound || !videoElement) {
                 return;
@@ -799,6 +809,7 @@
                 setReconnectState(false);
                 applyPreferredAudio();
                 hideBuffering();
+                updateAspectRatio();
             });
 
             videoElement.addEventListener('pause', () => {
