@@ -40,10 +40,43 @@ cd "${REPO_DIR}"
 echo "📥 Pulling latest changes from Git..."
 git fetch origin "${BRANCH}"
 
+# Move untracked files that would be overwritten by incoming tracked files.
+declare -A INCOMING_FILES=()
+while read -r status path path2; do
+    case "${status}" in
+        A)
+            INCOMING_FILES["${path}"]=1
+            ;;
+        R*|C*)
+            INCOMING_FILES["${path2}"]=1
+            ;;
+    esac
+done < <(git diff --name-status "HEAD" "origin/${BRANCH}")
+
+mapfile -t UNTRACKED_FILES < <(git ls-files --others --exclude-standard)
+UNTRACKED_BACKUP_DIR=""
+CONFLICT_COUNT=0
+if [ "${#UNTRACKED_FILES[@]}" -gt 0 ] && [ "${#INCOMING_FILES[@]}" -gt 0 ]; then
+    for file in "${UNTRACKED_FILES[@]}"; do
+        if [[ -n "${INCOMING_FILES["$file"]:-}" ]]; then
+            if [ -z "${UNTRACKED_BACKUP_DIR}" ]; then
+                UNTRACKED_BACKUP_DIR="local-backup-$(date +%Y%m%d%H%M%S)/untracked-conflicts"
+                mkdir -p "${UNTRACKED_BACKUP_DIR}"
+            fi
+            mkdir -p "${UNTRACKED_BACKUP_DIR}/$(dirname "${file}")"
+            mv "${file}" "${UNTRACKED_BACKUP_DIR}/${file}"
+            CONFLICT_COUNT=$((CONFLICT_COUNT + 1))
+        fi
+    done
+fi
+if [ "${CONFLICT_COUNT}" -gt 0 ]; then
+    echo "📦 Moved ${CONFLICT_COUNT} untracked file(s) to ${UNTRACKED_BACKUP_DIR} to avoid pull conflicts."
+fi
+
 STASH_CREATED=0
-if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
-    echo "📦 Stashing local changes..."
-    git stash push -u -m "auto-deploy-$(date +%Y%m%d%H%M%S)" >/dev/null
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "📦 Stashing local tracked changes..."
+    git stash push -m "auto-deploy-$(date +%Y%m%d%H%M%S)" >/dev/null
     STASH_CREATED=1
 fi
 
