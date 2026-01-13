@@ -36,33 +36,56 @@ fi
 
 cd "${REPO_DIR}"
 
-# Pull latest changes
-echo "📥 Pulling latest changes from Git..."
+# Sync latest changes (backup runtime data, then hard reset to origin).
+echo "📥 Syncing with origin/${BRANCH}..."
 git fetch origin "${BRANCH}"
+
+BACKUP_ROOT="local-backup-$(date +%Y%m%d%H%M%S)"
+RUNTIME_BACKUP_DIR="${BACKUP_ROOT}/runtime"
+RUNTIME_PATHS=(
+    "data/restream.json"
+    "data/public-config.json"
+    "data/public-hls.conf"
+    "data/admin.htpasswd"
+    "data/admin.credentials"
+    "data/stunnel-rtmps.conf"
+    "data/stunnel-rtmps.merged.conf"
+    "data/rtmps-enabled"
+    "data/stream-status.json"
+    "data/overlays"
+)
+
+RUNTIME_BACKUP_COUNT=0
+for path in "${RUNTIME_PATHS[@]}"; do
+    if [ -e "${path}" ]; then
+        mkdir -p "${RUNTIME_BACKUP_DIR}/$(dirname "${path}")"
+        cp -a "${path}" "${RUNTIME_BACKUP_DIR}/${path}"
+        RUNTIME_BACKUP_COUNT=$((RUNTIME_BACKUP_COUNT + 1))
+    fi
+done
+if [ "${RUNTIME_BACKUP_COUNT}" -gt 0 ]; then
+    echo "📦 Backed up runtime data to ${RUNTIME_BACKUP_DIR}"
+fi
 
 # Move untracked files that would be overwritten by incoming tracked files.
 declare -A INCOMING_FILES=()
 while read -r status path path2; do
     case "${status}" in
-        A)
+        A|M)
             INCOMING_FILES["${path}"]=1
             ;;
         R*|C*)
             INCOMING_FILES["${path2}"]=1
             ;;
     esac
-done < <(git diff --name-status "HEAD" "origin/${BRANCH}")
+done < <(git diff --name-status "HEAD" "origin/${BRANCH}" || true)
 
 mapfile -t UNTRACKED_FILES < <(git ls-files --others --exclude-standard)
-UNTRACKED_BACKUP_DIR=""
+UNTRACKED_BACKUP_DIR="${BACKUP_ROOT}/untracked-conflicts"
 CONFLICT_COUNT=0
 if [ "${#UNTRACKED_FILES[@]}" -gt 0 ] && [ "${#INCOMING_FILES[@]}" -gt 0 ]; then
     for file in "${UNTRACKED_FILES[@]}"; do
         if [[ -n "${INCOMING_FILES["$file"]:-}" ]]; then
-            if [ -z "${UNTRACKED_BACKUP_DIR}" ]; then
-                UNTRACKED_BACKUP_DIR="local-backup-$(date +%Y%m%d%H%M%S)/untracked-conflicts"
-                mkdir -p "${UNTRACKED_BACKUP_DIR}"
-            fi
             mkdir -p "${UNTRACKED_BACKUP_DIR}/$(dirname "${file}")"
             mv "${file}" "${UNTRACKED_BACKUP_DIR}/${file}"
             CONFLICT_COUNT=$((CONFLICT_COUNT + 1))
@@ -70,28 +93,26 @@ if [ "${#UNTRACKED_FILES[@]}" -gt 0 ] && [ "${#INCOMING_FILES[@]}" -gt 0 ]; then
     done
 fi
 if [ "${CONFLICT_COUNT}" -gt 0 ]; then
-    echo "📦 Moved ${CONFLICT_COUNT} untracked file(s) to ${UNTRACKED_BACKUP_DIR} to avoid pull conflicts."
+    echo "📦 Moved ${CONFLICT_COUNT} untracked file(s) to ${UNTRACKED_BACKUP_DIR}"
 fi
 
-STASH_CREATED=0
-TRACKED_CHANGES="$(git status --porcelain -uno)"
-if [ -n "${TRACKED_CHANGES}" ]; then
-    echo "📦 Stashing local tracked changes..."
-    if git stash push -m "auto-deploy-$(date +%Y%m%d%H%M%S)"; then
-        STASH_CREATED=1
-    else
-        echo "⚠️ Stash failed; continuing with local changes intact."
-    fi
+if [ -f .git/MERGE_HEAD ]; then
+    git merge --abort || true
+fi
+if [ -d .git/rebase-apply ] || [ -d .git/rebase-merge ]; then
+    git rebase --abort || true
 fi
 
-git pull --ff-only origin "${BRANCH}"
+echo "🧹 Resetting working tree to origin/${BRANCH}..."
+git reset --hard "origin/${BRANCH}"
 
-if [ "${STASH_CREATED}" = "1" ]; then
-    echo "📦 Restoring local changes..."
-    if ! git stash pop; then
-        echo "⚠️ Stash apply failed. Resolve manually with: git stash list"
-        exit 1
-    fi
+if [ -d "${RUNTIME_BACKUP_DIR}" ]; then
+    for path in "${RUNTIME_PATHS[@]}"; do
+        if [ -e "${RUNTIME_BACKUP_DIR}/${path}" ]; then
+            mkdir -p "$(dirname "${path}")"
+            cp -a "${RUNTIME_BACKUP_DIR}/${path}" "${path}"
+        fi
+    done
 fi
 
 # Always keep core scripts in sync with repo for reliable deploys.
