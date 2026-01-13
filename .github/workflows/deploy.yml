@@ -35,7 +35,7 @@ jobs:
           script: |
             cd /var/www/nginx-rtmp-module
             git fetch origin main
-            git checkout -- deploy.sh
+            git checkout origin/main -- deploy.sh
             bash ./deploy.sh
         env:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
