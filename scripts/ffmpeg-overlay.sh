@@ -227,8 +227,9 @@ if [ "${OVERLAY_COUNT}" -gt 0 ] && [ -n "${OVERLAY_FILTER_COMPLEX}" ] && [ -n "$
         ffmpeg_cmd+=(
             -filter_complex "${OVERLAY_FILTER_COMPLEX}"
             -map "[${OVERLAY_VIDEO_LABEL}]" -map 0:a?
-            -vsync 2
-            -c:v libx264 -preset veryfast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p
+            -r 30
+            -vsync 1
+            -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p
             -c:a aac -b:a 128k -ar 48000 -ac 2 -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0"
             -f flv "${OUTPUT_URL}"
         )
