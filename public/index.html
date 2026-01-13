@@ -889,7 +889,8 @@
                     maxBufferLength: 30,
                     backBufferLength: 30,
                     liveSyncDurationCount: 2,
-                    liveMaxLatencyDurationCount: 6
+                    liveMaxLatencyDurationCount: 6,
+                    maxLiveSyncPlaybackRate: 1
                 });
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     handleHlsError(data);

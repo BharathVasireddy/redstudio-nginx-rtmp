@@ -14,6 +14,15 @@ PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
 LOCAL_CONF="${ROOT_DIR}/conf/nginx.local.conf"
 
+CONF_BEFORE=""
+if [ -f "${CONF_FILE}" ]; then
+    CONF_BEFORE="$(cat "${CONF_FILE}")"
+fi
+PUBLIC_HLS_BEFORE=""
+if [ -f "${PUBLIC_HLS_CONF_FILE}" ]; then
+    PUBLIC_HLS_BEFORE="$(cat "${PUBLIC_HLS_CONF_FILE}")"
+fi
+
 run_cmd() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
@@ -149,6 +158,29 @@ with open(public_hls_conf, "w", encoding="utf-8") as fh:
     fh.write(f"set $public_hls {1 if public_hls else 0};\n")
 PY
 
+CONF_AFTER=""
+if [ -f "${CONF_FILE}" ]; then
+    CONF_AFTER="$(cat "${CONF_FILE}")"
+fi
+PUBLIC_HLS_AFTER=""
+if [ -f "${PUBLIC_HLS_CONF_FILE}" ]; then
+    PUBLIC_HLS_AFTER="$(cat "${PUBLIC_HLS_CONF_FILE}")"
+fi
+
+CONF_CHANGED=0
+PUBLIC_HLS_CHANGED=0
+if [ "${CONF_BEFORE}" != "${CONF_AFTER}" ]; then
+    CONF_CHANGED=1
+fi
+if [ "${PUBLIC_HLS_BEFORE}" != "${PUBLIC_HLS_AFTER}" ]; then
+    PUBLIC_HLS_CHANGED=1
+fi
+
+NEED_RELOAD=0
+if [ "${CONF_CHANGED}" = "1" ] || [ "${PUBLIC_HLS_CHANGED}" = "1" ]; then
+    NEED_RELOAD=1
+fi
+
 if [ ! -x "${NGINX_BIN}" ]; then
     NGINX_BIN="$(command -v nginx || true)"
 fi
@@ -197,33 +229,37 @@ PY
             fi
         fi
 
-        run_cmd "${NGINX_BIN}" -t
+        if [ "${RESTART_NGINX:-0}" = "1" ] || [ "${NEED_RELOAD}" = "1" ]; then
+            run_cmd "${NGINX_BIN}" -t
 
-        if [ "${RESTART_NGINX:-0}" = "1" ]; then
-            restart_nginx
-        else
-            if ! run_cmd "${NGINX_BIN}" -s reload; then
-                PGREP_BIN="$(command -v pgrep || true)"
-                if [ -n "${PGREP_BIN}" ]; then
-                    MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
-                else
-                    MASTER_PID=""
-                fi
-                if [ -n "${MASTER_PID}" ]; then
-                    run_cmd /bin/kill -HUP "${MASTER_PID}"
-                else
-                    echo "nginx master process not found; reload failed." >&2
-                    exit 1
+            if [ "${RESTART_NGINX:-0}" = "1" ]; then
+                restart_nginx
+            else
+                if ! run_cmd "${NGINX_BIN}" -s reload; then
+                    PGREP_BIN="$(command -v pgrep || true)"
+                    if [ -n "${PGREP_BIN}" ]; then
+                        MASTER_PID="$("${PGREP_BIN}" -o -f 'nginx: master' || true)"
+                    else
+                        MASTER_PID=""
+                    fi
+                    if [ -n "${MASTER_PID}" ]; then
+                        run_cmd /bin/kill -HUP "${MASTER_PID}"
+                    else
+                        echo "nginx master process not found; reload failed." >&2
+                        exit 1
+                    fi
                 fi
             fi
         fi
     else
         if detect_local_nginx; then
-            "${NGINX_BIN}" -t -p "${ROOT_DIR}" -c conf/nginx.local.conf
-            if [ "${RESTART_NGINX:-0}" = "1" ]; then
-                restart_local_nginx
-            else
-                reload_local_nginx
+            if [ "${RESTART_NGINX:-0}" = "1" ] || [ "${NEED_RELOAD}" = "1" ]; then
+                "${NGINX_BIN}" -t -p "${ROOT_DIR}" -c conf/nginx.local.conf
+                if [ "${RESTART_NGINX:-0}" = "1" ]; then
+                    restart_local_nginx
+                else
+                    reload_local_nginx
+                fi
             fi
         else
             echo "sudo permissions missing for nginx reload. Run deploy to install sudoers." >&2

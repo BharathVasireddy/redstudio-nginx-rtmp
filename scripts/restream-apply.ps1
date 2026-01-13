@@ -13,6 +13,8 @@ $confCopy = Join-Path $Root "conf\data\restream.conf"
 $defaultConfig = Join-Path $Root "config\restream.default.json"
 $nginxExe = Join-Path $Root "nginx.exe"
 $restart = ($env:RESTART_NGINX -eq "1")
+$confBefore = if (Test-Path $confFile) { Get-Content $confFile -Raw } else { "" }
+$publicHlsBefore = if (Test-Path $publicHlsConf) { Get-Content $publicHlsConf -Raw } else { "" }
 
 function Clean-Value {
     param([string]$Value)
@@ -78,9 +80,19 @@ $publicPayload = [ordered]@{
 $publicPayload | ConvertTo-Json -Compress | Out-File -FilePath $publicConfigFile -Encoding ASCII -Force
 ("set `$public_hls " + ($(if ($publicHls) { "1" } else { "0" })) + ";") | Out-File -FilePath $publicHlsConf -Encoding ASCII -Force
 
+$confAfter = Get-Content $confFile -Raw
+$publicHlsAfter = Get-Content $publicHlsConf -Raw
+$confChanged = $confBefore -ne $confAfter
+$publicHlsChanged = $publicHlsBefore -ne $publicHlsAfter
+$needsReload = $restart -or $confChanged -or $publicHlsChanged
+
 if (!(Test-Path $nginxExe)) {
     Write-Error "nginx.exe not found in repo root."
     exit 1
+}
+
+if (-not $needsReload) {
+    exit 0
 }
 
 & $nginxExe -p $Root -c conf\nginx.local.conf -t | Out-Null

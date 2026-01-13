@@ -136,8 +136,12 @@
 
             if (window.Hls && Hls.isSupported()) {
                 const hls = new Hls({
-                    maxBufferLength: 20,
-                    liveSyncDuration: 12
+                    lowLatencyMode: false,
+                    maxBufferLength: 30,
+                    backBufferLength: 30,
+                    liveSyncDurationCount: 2,
+                    liveMaxLatencyDurationCount: 6,
+                    maxLiveSyncPlaybackRate: 1
                 });
                 hls.loadSource(sourceUrl);
                 hls.attachMedia(player);

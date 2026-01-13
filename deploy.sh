@@ -85,6 +85,7 @@ git checkout -- "${FORCE_FILES[@]}"
 # Ensure scripts are executable (kept for optional use)
 chmod +x "${REPO_DIR}/scripts/ffmpeg-abr.sh" \
   "${REPO_DIR}/scripts/ffmpeg-abr-lowcpu.sh" \
+  "${REPO_DIR}/scripts/ffmpeg-overlay.sh" \
   "${REPO_DIR}/scripts/restream-apply.sh" \
   "${REPO_DIR}/scripts/restream-generate.py" \
   "${REPO_DIR}/scripts/admin-api.py" \

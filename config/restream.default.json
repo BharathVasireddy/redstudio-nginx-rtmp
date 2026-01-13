@@ -2,6 +2,32 @@
   "ingest_key": "",
   "public_live": true,
   "public_hls": true,
+  "overlay": {
+    "id": "primary",
+    "enabled": false,
+    "image_file": "",
+    "position": "top-right",
+    "offset_x": 24,
+    "offset_y": 24,
+    "size_mode": "percent",
+    "size_value": 18,
+    "opacity": 1,
+    "rotate": 0
+  },
+  "overlays": [
+    {
+      "id": "primary",
+      "enabled": false,
+      "image_file": "",
+      "position": "top-right",
+      "offset_x": 24,
+      "offset_y": 24,
+      "size_mode": "percent",
+      "size_value": 18,
+      "opacity": 1,
+      "rotate": 0
+    }
+  ],
   "destinations": [
     {
       "id": "youtube",
