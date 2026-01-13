@@ -74,10 +74,14 @@ if [ "${CONFLICT_COUNT}" -gt 0 ]; then
 fi
 
 STASH_CREATED=0
-if ! git diff --quiet || ! git diff --cached --quiet; then
+TRACKED_CHANGES="$(git status --porcelain -uno)"
+if [ -n "${TRACKED_CHANGES}" ]; then
     echo "📦 Stashing local tracked changes..."
-    git stash push -m "auto-deploy-$(date +%Y%m%d%H%M%S)" >/dev/null
-    STASH_CREATED=1
+    if git stash push -m "auto-deploy-$(date +%Y%m%d%H%M%S)"; then
+        STASH_CREATED=1
+    else
+        echo "⚠️ Stash failed; continuing with local changes intact."
+    fi
 fi
 
 git pull --ff-only origin "${BRANCH}"
