@@ -8,6 +8,7 @@ import { updateEmbedUi, bindEmbedEvents, setEmbedStatus } from './embed.js';
 import { loadMetrics } from './metrics.js';
 import { loadHealth } from './health.js';
 import { initPreviewPlayer } from './preview.js';
+import { normalizeTicker, renderTicker, bindTickerEvents } from './ticker.js';
 
 function getIngestUrl() {
     const host = window.location.hostname;
@@ -48,6 +49,8 @@ function render() {
     }
     state.overlays = normalizeOverlays(state.overlays, { allowEmpty: true });
     renderOverlays();
+    state.ticker = normalizeTicker(state.ticker);
+    renderTicker();
     renderDestinations();
 }
 
@@ -91,6 +94,38 @@ async function waitForStreamHealth(timeoutMs = 15000) {
     return null;
 }
 
+async function confirmTickerSaved() {
+    if (!state.ticker) {
+        return;
+    }
+    const desired = normalizeTicker(state.ticker);
+    if (!desired.enabled && !desired.text) {
+        return;
+    }
+    try {
+        const res = await fetch('/public-config.json', { cache: 'no-store' });
+        if (!res.ok) {
+            return;
+        }
+        const data = await res.json();
+        const saved = normalizeTicker(data.ticker);
+        const desiredItems = Array.isArray(desired.items) ? desired.items : [];
+        const savedItems = Array.isArray(saved.items) ? saved.items : [];
+        const mismatch = saved.enabled !== desired.enabled
+            || saved.speed !== desired.speed
+            || saved.font_size !== desired.font_size
+            || saved.height !== desired.height
+            || saved.background !== desired.background
+            || saved.separator !== desired.separator
+            || JSON.stringify(savedItems) !== JSON.stringify(desiredItems);
+        if (mismatch) {
+            showToast('Ticker did not persist. Restart the admin API and save again.', 'error');
+        }
+    } catch (err) {
+        // Ignore ticker confirmation errors
+    }
+}
+
 async function ensureSession() {
     try {
         const res = await fetch(`${API_BASE}/session`, { cache: 'no-store' });
@@ -118,6 +153,7 @@ async function loadConfig() {
         state.public_hls = typeof payload.public_hls === 'boolean' ? payload.public_hls : true;
         const overlaysSource = payload.overlays || payload.overlay || [];
         state.overlays = normalizeOverlays(overlaysSource, { allowEmpty: true });
+        state.ticker = normalizeTicker(payload.ticker);
         state.destinations = mergeDefaults(payload.destinations);
         render();
     } catch (err) {
@@ -130,6 +166,7 @@ async function loadConfig() {
         state.public_live = true;
         state.public_hls = true;
         state.overlays = [normalizeOverlayItem({})];
+        state.ticker = normalizeTicker({});
         render();
         showToast('Admin API not reachable. Showing defaults.', 'error');
     }
@@ -164,6 +201,8 @@ async function saveConfig(apply) {
             showToast(`Save failed: ${errorMessage}`, 'error');
             return;
         }
+
+        await confirmTickerSaved();
 
         if (apply) {
             if (dom.status) {
@@ -376,6 +415,7 @@ function bindEvents() {
     bindDestinationEvents(render);
     bindOverlayEvents();
     bindEmbedEvents();
+    bindTickerEvents();
 }
 
 bindEvents();

@@ -154,6 +154,97 @@
 
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-header">
+                <h1 class="card-title">Scrolling Ticker</h1>
+                <p class="card-subtitle">Add a scrolling text message below the live player.</p>
+            </div>
+            <div class="card-body">
+                <div class="ticker-grid">
+                    <div class="ticker-controls">
+                        <div class="toggle-group">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tickerToggle">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-label" id="tickerLabel">Ticker disabled</span>
+                        </div>
+                        <div class="field">
+                            <label for="tickerBgInput">Ticker background</label>
+                            <div class="ticker-color-row">
+                                <input type="color" id="tickerBgColor" value="#0f172a">
+                                <input type="text" id="tickerBgInput" placeholder="Default gradient">
+                                <button class="btn btn-secondary btn-small" type="button" id="tickerBgReset">Default</button>
+                            </div>
+                            <span class="field-hint">Leave empty to use the default gradient.</span>
+                        </div>
+                        <div class="field">
+                            <label for="tickerSeparatorSelect">Separator between messages</label>
+                            <div class="ticker-separator-row">
+                                <select id="tickerSeparatorSelect">
+                                    <option value="•">Bullet •</option>
+                                    <option value=".">Dot .</option>
+                                    <option value="|">Pipe |</option>
+                                    <option value="//">Double Slash //</option>
+                                    <option value="-">Dash -</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                                <input type="text" id="tickerSeparatorInput" placeholder="Custom" maxlength="6" disabled>
+                            </div>
+                            <span class="field-hint">Choose a separator or enter a custom one (max 6 characters).</span>
+                        </div>
+                        <div class="field">
+                            <label for="tickerSpeed">Scroll speed (seconds per loop)</label>
+                            <div class="ticker-speed">
+                                <input type="range" id="tickerSpeed" min="10" max="120" step="1" value="32">
+                                <span id="tickerSpeedValue">32s</span>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="tickerFontSize">Text size (px)</label>
+                            <div class="ticker-speed">
+                                <input type="range" id="tickerFontSize" min="10" max="28" step="1" value="14">
+                                <span id="tickerFontSizeValue">14px</span>
+                            </div>
+                            <span class="field-hint">Recommended 12-18 px for readability.</span>
+                        </div>
+                        <div class="field">
+                            <label for="tickerHeight">Ticker height (px)</label>
+                            <div class="ticker-speed">
+                                <input type="range" id="tickerHeight" min="28" max="80" step="1" value="40">
+                                <span id="tickerHeightValue">40px</span>
+                            </div>
+                            <span class="field-hint">Increase for a taller ticker bar.</span>
+                        </div>
+                        <div class="ticker-items-header">
+                            <div>
+                                <div class="ticker-items-title">Ticker messages</div>
+                                <div class="card-subtitle">Add short chunks; they scroll in order.</div>
+                            </div>
+                            <button class="btn btn-primary btn-small" type="button" id="tickerAddBtn">Add Message</button>
+                        </div>
+                        <div id="tickerItems" class="ticker-items"></div>
+                    </div>
+                    <div class="ticker-preview" id="tickerPreview">
+                        <div class="ticker-preview-screen">
+                            <div class="ticker-preview-badge">LIVE</div>
+                            <div class="ticker-preview-caption">Player preview</div>
+                            <div class="ticker-preview-frame"></div>
+                        </div>
+                        <div class="ticker-preview-bar" id="tickerPreviewBar">
+                            <div class="ticker-preview-placeholder" id="tickerPreviewPlaceholder">
+                                Add a message to preview the scrolling ticker.
+                            </div>
+                            <div class="ticker-preview-track" id="tickerPreviewTrack">
+                                <span class="ticker-preview-item" id="tickerPreviewPrimary"></span>
+                                <span class="ticker-preview-item" id="tickerPreviewClone"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
                 <h1 class="card-title">Server Health</h1>
                 <p class="card-subtitle">CPU, memory, disk, and network usage.</p>
             </div>
@@ -275,6 +366,46 @@
     </main>
 
     <div class="toast-container" id="toastContainer"></div>
+    <div class="modal-overlay hidden" id="tickerModal" aria-hidden="true">
+        <div class="modal-content ticker-modal">
+            <div class="ticker-modal-header">
+                <div class="modal-title" id="tickerModalTitle">Add ticker message</div>
+                <button class="ticker-modal-close" type="button" id="tickerModalClose" aria-label="Close">
+                    ×
+                </button>
+            </div>
+            <div class="ticker-modal-body">
+                <div class="ticker-editor-toolbar">
+                    <div class="ticker-emoji-row" id="tickerEmojiRow">
+                        <button type="button" data-emoji="🔥">🔥</button>
+                        <button type="button" data-emoji="✅">✅</button>
+                        <button type="button" data-emoji="⚡">⚡</button>
+                        <button type="button" data-emoji="📣">📣</button>
+                        <button type="button" data-emoji="🎯">🎯</button>
+                        <button type="button" data-emoji="💥">💥</button>
+                        <button type="button" data-emoji="📌">📌</button>
+                        <button type="button" data-emoji="⭐">⭐</button>
+                    </div>
+                    <div class="ticker-format-row">
+                        <button type="button" class="ticker-format-btn" data-action="bold" aria-label="Bold">
+                            <strong>B</strong>
+                        </button>
+                        <button type="button" class="ticker-format-btn" data-action="italic" aria-label="Italic">
+                            <em>I</em>
+                        </button>
+                    </div>
+                </div>
+                <div class="ticker-editor" id="tickerEditor" contenteditable="true" data-placeholder="Type a ticker message..."></div>
+                <div class="ticker-editor-meta">
+                    <span id="tickerCharCount">0 chars (recommended 140)</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" id="tickerModalCancel">Cancel</button>
+                <button class="btn btn-primary" type="button" id="tickerModalSave">Save Message</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="/admin/js/app.js"></script>
     <!-- Plyr JS -->

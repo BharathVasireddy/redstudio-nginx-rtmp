@@ -21,6 +21,7 @@ if [ ! -f data/public-config.json ] || [ ! -f data/public-hls.conf ]; then
   fi
   python3 - <<'PY' data/restream.json data/public-config.json data/public-hls.conf
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -35,11 +36,99 @@ except FileNotFoundError:
 
 public_live = bool(data.get("public_live", True))
 public_hls = bool(data.get("public_hls", True))
+ticker = data.get("ticker") if isinstance(data, dict) else {}
+if not isinstance(ticker, dict):
+    ticker = {}
+enabled = bool(ticker.get("enabled", False))
+speed = ticker.get("speed", 32)
+try:
+    speed = int(float(speed))
+except (TypeError, ValueError):
+    speed = 32
+speed = max(10, min(120, speed))
+font_size = ticker.get("font_size", 14)
+try:
+    font_size = int(float(font_size))
+except (TypeError, ValueError):
+    font_size = 14
+font_size = max(10, min(28, font_size))
+height = ticker.get("height", 40)
+try:
+    height = int(float(height))
+except (TypeError, ValueError):
+    height = 40
+height = max(28, min(80, height))
+background = ticker.get("background", "")
+if background is None:
+    background = ""
+background = str(background).strip()
+if not re.match(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$", background):
+    background = ""
+separator = ticker.get("separator", "")
+if separator is None:
+    separator = ""
+separator = str(separator).replace("\r", " ").replace("\n", " ").strip()
+if len(separator) > 6:
+    separator = separator[:6].strip()
+if not separator:
+    separator = "•"
+
+items_raw = ticker.get("items")
+if not isinstance(items_raw, list):
+    items_raw = []
+
+items = []
+for item in items_raw:
+    if not isinstance(item, dict):
+        continue
+    text = item.get("text", "")
+    if text is None:
+        text = ""
+    text = str(text).replace("\r", " ").replace("\n", " ").strip()
+    html_value = item.get("html")
+    if html_value is None:
+        html_value = ""
+    html_value = str(html_value).strip()
+    if not text and html_value:
+        text = re.sub(r"<[^>]+>", " ", html_value)
+        text = re.sub(r"\s+", " ", text).strip()
+    if not text and not html_value:
+        continue
+    entry = {"text": text, "bold": bool(item.get("bold", False))}
+    if html_value:
+        entry["html"] = html_value
+    item_id = item.get("id")
+    if isinstance(item_id, str) and item_id.strip():
+        entry["id"] = item_id.strip()
+    items.append(entry)
+
+if not items:
+    text = ticker.get("text", "")
+    if text is None:
+        text = ""
+    text = str(text).replace("\r", " ").replace("\n", " ").strip()
+    if text:
+        items = [{"text": text, "bold": False}]
+
+legacy_text = f" {separator} ".join([item.get("text", "") for item in items if item.get("text")])
+if not legacy_text:
+    legacy_text = ticker.get("text", "") or ""
+legacy_text = str(legacy_text).replace("\r", " ").replace("\n", " ").strip()
 
 now = int(time.time())
 payload = {
     "public_live": public_live,
     "public_hls": public_hls,
+    "ticker": {
+        "enabled": enabled,
+        "text": legacy_text,
+        "speed": speed,
+        "font_size": font_size,
+        "height": height,
+        "background": background,
+        "separator": separator,
+        "items": items,
+    },
     "updated_at_epoch": now,
     "updated_at": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
 }

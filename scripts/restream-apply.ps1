@@ -70,10 +70,132 @@ if ($data.PSObject.Properties.Name -contains "public_live") {
 if ($data.PSObject.Properties.Name -contains "public_hls") {
     $publicHls = [bool]$data.public_hls
 }
+
+$tickerEnabled = $false
+$tickerText = ""
+$tickerSpeed = 32
+$tickerFontSize = 14
+$tickerHeight = 40
+$tickerBackground = ""
+$tickerSeparator = ""
+$tickerItems = @()
+if ($data.PSObject.Properties.Name -contains "ticker" -and $data.ticker) {
+    $ticker = $data.ticker
+    if ($ticker.PSObject.Properties.Name -contains "enabled") {
+        $tickerEnabled = [bool]$ticker.enabled
+    }
+    if ($ticker.PSObject.Properties.Name -contains "text") {
+        $tickerText = [string]$ticker.text
+    }
+    if ($ticker.PSObject.Properties.Name -contains "speed") {
+        try {
+            $tickerSpeed = [int][double]$ticker.speed
+        } catch {
+            $tickerSpeed = 32
+        }
+    }
+    if ($ticker.PSObject.Properties.Name -contains "font_size") {
+        try {
+            $tickerFontSize = [int][double]$ticker.font_size
+        } catch {
+            $tickerFontSize = 14
+        }
+    }
+    if ($ticker.PSObject.Properties.Name -contains "height") {
+        try {
+            $tickerHeight = [int][double]$ticker.height
+        } catch {
+            $tickerHeight = 40
+        }
+    }
+    if ($ticker.PSObject.Properties.Name -contains "background") {
+        $tickerBackground = [string]$ticker.background
+    }
+    if ($ticker.PSObject.Properties.Name -contains "separator") {
+        $tickerSeparator = [string]$ticker.separator
+    }
+    if ($ticker.PSObject.Properties.Name -contains "items") {
+        $rawItems = $ticker.items
+        if ($rawItems -is [System.Collections.IEnumerable] -and $rawItems -isnot [string]) {
+            foreach ($item in $rawItems) {
+                if (-not $item) { continue }
+                $itemText = ""
+                if ($item.PSObject.Properties.Name -contains "text") {
+                    $itemText = [string]$item.text
+                }
+                $itemText = ($itemText -replace "`r|`n", " ").Trim()
+                $itemHtml = ""
+                if ($item.PSObject.Properties.Name -contains "html") {
+                    $itemHtml = [string]$item.html
+                }
+                $itemHtml = $itemHtml.Trim()
+                if (-not $itemText -and $itemHtml) {
+                    $itemText = ($itemHtml -replace "<[^>]+>", " ")
+                    $itemText = ($itemText -replace "\s+", " ").Trim()
+                }
+                if (-not $itemText -and -not $itemHtml) { continue }
+                $entry = [ordered]@{
+                    text = $itemText
+                    bold = [bool]$item.bold
+                }
+                if ($itemHtml) {
+                    $entry.html = $itemHtml
+                }
+                if ($item.PSObject.Properties.Name -contains "id") {
+                    $itemId = [string]$item.id
+                    if ($itemId.Trim()) {
+                        $entry.id = $itemId.Trim()
+                    }
+                }
+                $tickerItems += $entry
+            }
+        }
+    }
+}
+$tickerText = ($tickerText -replace "`r|`n", " ").Trim()
+if ($tickerSpeed -lt 10) { $tickerSpeed = 10 }
+if ($tickerSpeed -gt 120) { $tickerSpeed = 120 }
+if ($tickerFontSize -lt 10) { $tickerFontSize = 10 }
+if ($tickerFontSize -gt 28) { $tickerFontSize = 28 }
+if ($tickerHeight -lt 28) { $tickerHeight = 28 }
+if ($tickerHeight -gt 80) { $tickerHeight = 80 }
+$tickerBackground = $tickerBackground.Trim()
+if ($tickerBackground -notmatch "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$") {
+    $tickerBackground = ""
+}
+$tickerSeparator = ($tickerSeparator -replace "`r|`n", " ").Trim()
+if ($tickerSeparator.Length -gt 6) {
+    $tickerSeparator = $tickerSeparator.Substring(0, 6).Trim()
+}
+if (-not $tickerSeparator) {
+    $tickerSeparator = "•"
+}
+if ($tickerItems.Count -eq 0 -and $tickerText) {
+    $tickerItems = @([ordered]@{ text = $tickerText; bold = $false })
+}
+$legacyText = ""
+if ($tickerItems.Count -gt 0) {
+    $legacyText = ($tickerItems | ForEach-Object { $_.text }) -join (" " + $tickerSeparator + " ")
+}
+if (-not $legacyText) {
+    $legacyText = $tickerText
+}
+$legacyText = ($legacyText -replace "`r|`n", " ").Trim()
+
 $timestamp = [DateTimeOffset]::UtcNow
 $publicPayload = [ordered]@{
     public_live = $publicLive
     public_hls = $publicHls
+    ticker = [ordered]@{
+        enabled = $tickerEnabled
+        speed = $tickerSpeed
+        font_size = $tickerFontSize
+        height = $tickerHeight
+        background = $tickerBackground
+        separator = $tickerSeparator
+        items = $tickerItems
+        text = $legacyText
+    }
     updated_at_epoch = [int]$timestamp.ToUnixTimeSeconds()
     updated_at = $timestamp.ToString("o")
 }

@@ -27,6 +27,14 @@
             padding: 1.5rem 1rem 2rem;
         }
 
+        .player-shell {
+            background: #0b0f1a;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2), 0 2px 10px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
         .title {
             font-size: 1.25rem;
             font-weight: 600;
@@ -43,8 +51,74 @@
         video {
             width: 100%;
             background: #000;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .ticker {
+            width: 100%;
+            background: var(--ticker-bg, linear-gradient(120deg, rgba(15, 23, 42, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%));
+            color: #f8fafc;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            height: var(--ticker-height, 40px);
+            display: flex;
+            align-items: center;
+            padding: 0;
+            position: relative;
+        }
+
+        .ticker.hidden {
+            display: none;
+        }
+
+        .ticker-track {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            width: max-content;
+            white-space: nowrap;
+            animation: ticker-scroll var(--ticker-duration, 32s) linear infinite;
+            will-change: transform;
+            padding-left: 0;
+        }
+
+        .ticker-item {
+            font-size: var(--ticker-font-size, 0.85rem);
+            font-weight: 500;
+            letter-spacing: 0.03em;
+        }
+
+        .ticker-item strong {
+            font-weight: 800;
+        }
+
+        .ticker-strong {
+            font-weight: 800;
+        }
+
+        .ticker-text {
+            font-weight: 500;
+        }
+
+        .ticker-sep {
+            margin: 0 0.8rem;
+            opacity: 0.7;
+        }
+
+        @keyframes ticker-scroll {
+            from {
+                transform: translateX(0);
+            }
+            to {
+                transform: translateX(calc(-1 * var(--ticker-offset, 320px)));
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ticker-track {
+                animation: none;
+            }
         }
 
         .links {
@@ -80,7 +154,15 @@
     <div class="player-wrap">
         <div class="title">HLS Player</div>
         <div class="hint">If the live stream doesn’t start, tap play or try the direct playlist.</div>
-        <video id="hlsPlayer" controls playsinline></video>
+        <div class="player-shell">
+            <video id="hlsPlayer" controls playsinline></video>
+            <div class="ticker hidden" id="ticker" aria-live="off">
+                <div class="ticker-track" id="tickerTrack">
+                    <span class="ticker-item" id="tickerItem"></span>
+                    <span class="ticker-item" id="tickerItemClone"></span>
+                </div>
+            </div>
+        </div>
         <div class="links">
             <a class="link-button" href="/hls/stream.m3u8">Open Direct Playlist</a>
             <a class="link-button link-secondary" href="/">Back to Live Page</a>
@@ -95,30 +177,242 @@
         const sourceUrl = '/hls/stream.m3u8';
         const publicConfigUrl = '/public-config.json';
         const links = document.querySelector('.links');
+        const ticker = document.getElementById('ticker');
+        const tickerTrack = document.getElementById('tickerTrack');
+        const tickerItem = document.getElementById('tickerItem');
+        const tickerItemClone = document.getElementById('tickerItemClone');
+        const playerShell = document.querySelector('.player-shell');
+        const playerWrap = document.querySelector('.player-wrap');
+        const titleEl = document.querySelector('.title');
+        const hintEl = document.querySelector('.hint');
+        let streamAspectValue = 16 / 9;
 
         function setStatus(message) {
             statusText.textContent = message;
         }
 
+        function updateTickerOffset() {
+            if (!ticker || !tickerTrack || !tickerItem) {
+                return;
+            }
+            const itemWidth = tickerItem.getBoundingClientRect().width;
+            const containerWidth = ticker.getBoundingClientRect().width;
+            const computed = window.getComputedStyle(tickerTrack);
+            const gap = parseFloat(computed.columnGap || computed.gap || '40') || 40;
+            const offset = Math.max(itemWidth + gap, containerWidth + gap);
+            tickerTrack.style.setProperty('--ticker-offset', `${offset}px`);
+        }
+
+        function updatePlayerFit() {
+            if (!playerShell || !playerWrap) {
+                return;
+            }
+            const wrapStyles = window.getComputedStyle(playerWrap);
+            const paddingTop = parseFloat(wrapStyles.paddingTop) || 0;
+            const paddingBottom = parseFloat(wrapStyles.paddingBottom) || 0;
+            const titleHeight = titleEl ? titleEl.getBoundingClientRect().height : 0;
+            const hintHeight = hintEl ? hintEl.getBoundingClientRect().height : 0;
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+            const availableHeight = Math.max(0, viewportHeight - paddingTop - paddingBottom - titleHeight - hintHeight);
+            const tickerHeight = ticker && !ticker.classList.contains('hidden')
+                ? ticker.getBoundingClientRect().height
+                : 0;
+            const availableVideoHeight = Math.max(0, availableHeight - tickerHeight);
+            const baseMaxWidth = Math.min(960, playerWrap.clientWidth || window.innerWidth);
+            if (!Number.isFinite(streamAspectValue) || streamAspectValue <= 0) {
+                playerShell.style.maxWidth = '';
+                return;
+            }
+            const maxWidthByHeight = availableVideoHeight * streamAspectValue;
+            if (maxWidthByHeight > 0 && maxWidthByHeight < baseMaxWidth - 1) {
+                playerShell.style.maxWidth = `${Math.floor(maxWidthByHeight)}px`;
+            } else {
+                playerShell.style.maxWidth = '';
+            }
+        }
+
+        function escapeTickerHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sanitizeTickerHtml(value) {
+            if (!value || typeof value !== 'string') {
+                return { html: '', text: '' };
+            }
+            const container = document.createElement('div');
+            container.innerHTML = value;
+            const parts = [];
+            const blockTags = new Set(['DIV', 'P', 'BR', 'LI']);
+
+            function walk(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    parts.push(escapeTickerHtml(node.textContent));
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) {
+                    return;
+                }
+                const tag = node.tagName;
+                if (tag === 'BR') {
+                    parts.push(' ');
+                    return;
+                }
+                const normalized = tag === 'B' ? 'strong' : tag === 'I' ? 'em' : tag.toLowerCase();
+                const isAllowed = normalized === 'strong' || normalized === 'em';
+                if (isAllowed) {
+                    parts.push(`<${normalized}>`);
+                }
+                node.childNodes.forEach(walk);
+                if (isAllowed) {
+                    parts.push(`</${normalized}>`);
+                }
+                if (!isAllowed && blockTags.has(tag)) {
+                    parts.push(' ');
+                }
+            }
+
+            container.childNodes.forEach(walk);
+            const html = parts.join('').replace(/\s{2,}/g, ' ').trim();
+            const text = container.textContent.replace(/\s+/g, ' ').trim();
+            return { html, text };
+        }
+
+        function normalizeTickerItems(config) {
+            if (!config || typeof config !== 'object') {
+                return [];
+            }
+            if (Array.isArray(config.items)) {
+                return config.items;
+            }
+            if (typeof config.text === 'string' && config.text.trim()) {
+                return [{ text: config.text, bold: false }];
+            }
+            return [];
+        }
+
+        function buildTickerMarkup(items, separator) {
+            const parts = [];
+            items.forEach((item) => {
+                if (!item) {
+                    return;
+                }
+                if (typeof item.html === 'string' && item.html.trim()) {
+                    const sanitized = sanitizeTickerHtml(item.html);
+                    if (sanitized.html) {
+                        parts.push(sanitized.html);
+                        return;
+                    }
+                }
+                if (!item.text) {
+                    return;
+                }
+                const text = String(item.text).trim();
+                if (!text) {
+                    return;
+                }
+                const safeText = escapeTickerHtml(text);
+                if (item.bold) {
+                    parts.push(`<strong class="ticker-strong">${safeText}</strong>`);
+                } else {
+                    parts.push(`<span class="ticker-text">${safeText}</span>`);
+                }
+            });
+            if (!parts.length) {
+                return '';
+            }
+            const safeSep = escapeTickerHtml(separator || '•');
+            const sepMarkup = `<span class="ticker-sep">${safeSep}</span>`;
+            return parts.join(sepMarkup) + sepMarkup;
+        }
+
+        function applyTickerBackground(value) {
+            if (!ticker) {
+                return;
+            }
+            const cleaned = value && typeof value === 'string' ? value.trim() : '';
+            if (cleaned && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(cleaned)) {
+                ticker.style.setProperty('--ticker-bg', cleaned);
+            } else {
+                ticker.style.removeProperty('--ticker-bg');
+            }
+        }
+
+        function applyTickerSizing(config) {
+            if (!ticker) {
+                return;
+            }
+            const fontSize = Number(config && config.font_size);
+            if (Number.isFinite(fontSize) && fontSize > 0) {
+                ticker.style.setProperty('--ticker-font-size', `${fontSize}px`);
+            } else {
+                ticker.style.removeProperty('--ticker-font-size');
+            }
+            const height = Number(config && config.height);
+            if (Number.isFinite(height) && height > 0) {
+                ticker.style.setProperty('--ticker-height', `${height}px`);
+            } else {
+                ticker.style.removeProperty('--ticker-height');
+            }
+            requestAnimationFrame(updatePlayerFit);
+        }
+
+        function updateTickerFromConfig(config) {
+            if (!ticker || !tickerTrack || !tickerItem || !tickerItemClone) {
+                return;
+            }
+            const enabled = config && config.enabled === true;
+            const items = normalizeTickerItems(config);
+            const separator = config && typeof config.separator === 'string' ? config.separator : '•';
+            const markup = buildTickerMarkup(items, separator);
+            if (!enabled || !markup) {
+                ticker.classList.add('hidden');
+                applyTickerSizing(config);
+                requestAnimationFrame(updatePlayerFit);
+                return;
+            }
+            tickerItem.innerHTML = markup;
+            tickerItemClone.innerHTML = markup;
+            const speed = Number(config.speed);
+            const duration = Number.isFinite(speed) ? Math.min(120, Math.max(10, speed)) : 32;
+            tickerTrack.style.setProperty('--ticker-duration', `${duration}s`);
+            applyTickerBackground(config && config.background);
+            applyTickerSizing(config);
+            ticker.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                updateTickerOffset();
+                updatePlayerFit();
+            });
+        }
+
         async function loadPublicConfig() {
+            let allowed = true;
+            let tickerConfig = null;
             try {
                 const res = await fetch(publicConfigUrl, { cache: 'no-store' });
                 if (!res.ok) {
-                    return true;
+                    return { allowed, ticker: tickerConfig };
                 }
                 const data = await res.json();
                 if (typeof data.public_hls === 'boolean') {
-                    return data.public_hls;
+                    allowed = data.public_hls;
                 }
+                tickerConfig = data.ticker || null;
             } catch (err) {
                 // Ignore config errors
             }
-            return true;
+            return { allowed, ticker: tickerConfig };
         }
 
         async function initPlayer() {
-            const isHlsAllowed = await loadPublicConfig();
-            if (!isHlsAllowed) {
+            const publicConfig = await loadPublicConfig();
+            updateTickerFromConfig(publicConfig.ticker);
+            updatePlayerFit();
+            if (!publicConfig.allowed) {
                 player.removeAttribute('src');
                 player.style.display = 'none';
                 if (links) {
@@ -155,7 +449,20 @@
             setStatus('HLS is not supported in this browser.');
         }
 
+        player.addEventListener('loadedmetadata', () => {
+            if (player.videoWidth && player.videoHeight) {
+                streamAspectValue = player.videoWidth / player.videoHeight;
+                updatePlayerFit();
+            }
+        });
+
         initPlayer();
+        window.addEventListener('resize', () => {
+            if (ticker && !ticker.classList.contains('hidden')) {
+                updateTickerOffset();
+            }
+            updatePlayerFit();
+        });
     </script>
 </body>
 </html>

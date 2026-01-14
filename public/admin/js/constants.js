@@ -53,3 +53,32 @@ export const overlayDefaults = {
 };
 
 export const overlayMaxCount = 8;
+
+export const tickerDefaults = {
+    enabled: false,
+    text: '',
+    speed: 32,
+    font_size: 14,
+    height: 40,
+    background: '',
+    separator: '•',
+    items: []
+};
+
+export const tickerSpeedRange = {
+    min: 10,
+    max: 120
+};
+
+export const tickerFontRange = {
+    min: 10,
+    max: 28
+};
+
+export const tickerHeightRange = {
+    min: 28,
+    max: 80
+};
+
+export const tickerMaxItems = 10;
+export const tickerTextLimit = 140;

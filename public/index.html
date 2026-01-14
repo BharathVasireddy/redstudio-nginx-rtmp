@@ -46,38 +46,98 @@
             position: sticky;
             top: 0;
             z-index: 20;
-            padding: 1rem;
+            padding: 0.75rem 1.25rem;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            gap: 1rem;
             background: var(--bg-primary);
             border-bottom: 1px solid var(--border);
         }
 
         .brand-title {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
             letter-spacing: 0.02em;
             color: var(--text-primary);
+            text-transform: uppercase;
         }
 
         /* Video container with centered layout */
         .video-wrapper {
             width: 100%;
             background: var(--bg-primary);
-            padding: 1rem;
+            padding: 0.9rem;
+        }
+
+        .player-shell {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            background: #0b0f1a;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18), 0 2px 10px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(15, 23, 42, 0.08);
         }
 
         .video-container {
             position: relative;
             width: 100%;
-            max-width: 1280px;
-            margin: 0 auto;
             background: #000;
-            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
             aspect-ratio: var(--stream-aspect);
+        }
+
+        .ticker {
+            width: 100%;
+            background: var(--ticker-bg, linear-gradient(120deg, rgba(15, 23, 42, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%));
+            color: #f8fafc;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            height: var(--ticker-height, 40px);
+            display: flex;
+            align-items: center;
+            padding: 0;
+            position: relative;
+        }
+
+        .ticker.hidden {
+            display: none;
+        }
+
+        .ticker-track {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            width: max-content;
+            white-space: nowrap;
+            animation: ticker-scroll var(--ticker-duration, 32s) linear infinite;
+            will-change: transform;
+            padding-left: 0;
+        }
+
+        .ticker-item {
+            font-size: var(--ticker-font-size, 0.9rem);
+            font-weight: 500;
+            letter-spacing: 0.03em;
+        }
+
+        .ticker-item strong {
+            font-weight: 800;
+        }
+
+        .ticker-strong {
+            font-weight: 800;
+        }
+
+        .ticker-text {
+            font-weight: 500;
+        }
+
+        .ticker-sep {
+            margin: 0 0.8rem;
+            opacity: 0.7;
         }
 
         /* Plyr player with YouTube-like sizing */
@@ -105,19 +165,46 @@
             width: 100%;
         }
 
+        @keyframes ticker-scroll {
+            from {
+                transform: translateX(0);
+            }
+            to {
+                transform: translateX(calc(-1 * var(--ticker-offset, 320px)));
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ticker-track {
+                animation: none;
+            }
+        }
+
         /* Responsive: full width on mobile */
         @media (max-width: 768px) {
             .video-wrapper {
                 padding: 0;
             }
 
-            .video-container {
+            .ticker {
                 border-radius: 0;
-                box-shadow: none;
+                margin-top: 0;
             }
 
             .plyr {
                 max-height: none;
+            }
+
+            .player-shell {
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+                box-shadow: none;
+            }
+
+            .brand-bar {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
 
@@ -218,20 +305,11 @@
             height: 18px;
         }
 
-        .stream-stats-wrapper {
-            width: 100%;
-            background: var(--bg-primary);
-            padding: 0.5rem 1rem 1rem;
-        }
-
         .stream-stats {
-            max-width: 1280px;
-            margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 3rem;
-            padding: 0.75rem 0.5rem;
+            justify-content: flex-end;
+            gap: 1.5rem;
         }
 
         .stat-item {
@@ -241,32 +319,28 @@
         }
 
         .stat-label {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             font-weight: 500;
             color: var(--text-secondary);
         }
 
         .stat-value {
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-primary);
         }
 
         .stat-hint {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
             margin-left: 0.25rem;
         }
 
         @media (max-width: 768px) {
-            .stream-stats-wrapper {
-                padding: 0.5rem 1rem 1rem;
-            }
-
             .stream-stats {
-                gap: 2rem;
+                gap: 0.75rem;
                 flex-wrap: wrap;
-                justify-content: center;
+                justify-content: flex-start;
             }
 
             .stat-item {
@@ -512,9 +586,22 @@
     <div class="page">
         <div class="brand-bar">
             <div class="brand-title">U-RL.COM</div>
+            <div class="stream-stats" id="streamStats">
+                <div class="stat-item">
+                    <span class="stat-label">Viewers:</span>
+                    <span class="stat-value" id="viewerCount">—</span>
+                    <span class="stat-hint" id="viewerHint">(Last 30s)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Live since:</span>
+                    <span class="stat-value" id="liveSince">—</span>
+                    <span class="stat-hint" id="liveSinceHint">(Local time)</span>
+                </div>
+            </div>
         </div>
 
         <div class="video-wrapper">
+        <div class="player-shell">
         <div class="video-container">
         <!-- Video.js Player -->
         <video id="player" controls playsinline preload="auto"></video>
@@ -550,20 +637,14 @@
         </div>
         </div>
 
-        <div class="stream-stats-wrapper">
-        <div class="stream-stats" id="streamStats">
-            <div class="stat-item">
-                <span class="stat-label">Viewers:</span>
-                <span class="stat-value" id="viewerCount">—</span>
-                <span class="stat-hint" id="viewerHint">(Last 30s)</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Live since:</span>
-                <span class="stat-value" id="liveSince">—</span>
-                <span class="stat-hint" id="liveSinceHint">(Local time)</span>
+        <div class="ticker hidden" id="ticker" aria-live="off">
+            <div class="ticker-track" id="tickerTrack">
+                <span class="ticker-item" id="tickerItem"></span>
+                <span class="ticker-item" id="tickerItemClone"></span>
             </div>
         </div>
         </div>
+
         </div>
 
         <div class="mobile-fallback">
@@ -617,11 +698,18 @@
         const bufferingOverlay = document.getElementById('bufferingOverlay');
         const liveBadge = document.getElementById('liveBadge');
         const statusToast = document.getElementById('statusToast');
+        const ticker = document.getElementById('ticker');
+        const tickerTrack = document.getElementById('tickerTrack');
+        const tickerItem = document.getElementById('tickerItem');
+        const tickerItemClone = document.getElementById('tickerItemClone');
         const viewerCountEl = document.getElementById('viewerCount');
         const viewerHintEl = document.getElementById('viewerHint');
         const liveSinceEl = document.getElementById('liveSince');
         const streamStats = document.getElementById('streamStats');
         const mobileFallback = document.querySelector('.mobile-fallback');
+        const playerShell = document.querySelector('.player-shell');
+        const videoWrapper = document.querySelector('.video-wrapper');
+        const brandBar = document.querySelector('.brand-bar');
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
         const VIEWER_URL = '/hls-viewers.json';
         const STATUS_URL = '/stream-status.json';
@@ -634,6 +722,7 @@
         const HIDDEN_HINT = 'Waiting for broadcast.';
         const HLS_DISABLED_TITLE = 'Stream Restricted';
         const HLS_DISABLED_HINT = 'The HLS stream is disabled by the admin.';
+        let streamAspectValue = 16 / 9;
 
         function isStreamAllowed() {
             return publicLiveAllowed && publicHlsAllowed;
@@ -715,6 +804,203 @@
             attemptPlay();
         }
 
+        function updateTickerOffset() {
+            if (!ticker || !tickerTrack || !tickerItem) {
+                return;
+            }
+            const itemWidth = tickerItem.getBoundingClientRect().width;
+            const containerWidth = ticker.getBoundingClientRect().width;
+            const computed = window.getComputedStyle(tickerTrack);
+            const gap = parseFloat(computed.columnGap || computed.gap || '40') || 40;
+            const offset = Math.max(itemWidth + gap, containerWidth + gap);
+            tickerTrack.style.setProperty('--ticker-offset', `${offset}px`);
+        }
+
+        function updatePlayerFit() {
+            if (!playerShell || !videoWrapper) {
+                return;
+            }
+            const wrapperStyles = window.getComputedStyle(videoWrapper);
+            const paddingTop = parseFloat(wrapperStyles.paddingTop) || 0;
+            const paddingBottom = parseFloat(wrapperStyles.paddingBottom) || 0;
+            const headerHeight = brandBar ? brandBar.getBoundingClientRect().height : 0;
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+            const availableHeight = Math.max(0, viewportHeight - headerHeight - paddingTop - paddingBottom);
+            const tickerHeight = ticker && !ticker.classList.contains('hidden')
+                ? ticker.getBoundingClientRect().height
+                : 0;
+            const availableVideoHeight = Math.max(0, availableHeight - tickerHeight);
+            const baseMaxWidth = Math.min(1280, videoWrapper.clientWidth || window.innerWidth);
+            if (!Number.isFinite(streamAspectValue) || streamAspectValue <= 0) {
+                playerShell.style.maxWidth = '';
+                return;
+            }
+            const maxWidthByHeight = availableVideoHeight * streamAspectValue;
+            if (maxWidthByHeight > 0 && maxWidthByHeight < baseMaxWidth - 1) {
+                playerShell.style.maxWidth = `${Math.floor(maxWidthByHeight)}px`;
+            } else {
+                playerShell.style.maxWidth = '';
+            }
+        }
+
+        function escapeTickerHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sanitizeTickerHtml(value) {
+            if (!value || typeof value !== 'string') {
+                return { html: '', text: '' };
+            }
+            const container = document.createElement('div');
+            container.innerHTML = value;
+            const parts = [];
+            const blockTags = new Set(['DIV', 'P', 'BR', 'LI']);
+
+            function walk(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    parts.push(escapeTickerHtml(node.textContent));
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) {
+                    return;
+                }
+                const tag = node.tagName;
+                if (tag === 'BR') {
+                    parts.push(' ');
+                    return;
+                }
+                const normalized = tag === 'B' ? 'strong' : tag === 'I' ? 'em' : tag.toLowerCase();
+                const isAllowed = normalized === 'strong' || normalized === 'em';
+                if (isAllowed) {
+                    parts.push(`<${normalized}>`);
+                }
+                node.childNodes.forEach(walk);
+                if (isAllowed) {
+                    parts.push(`</${normalized}>`);
+                }
+                if (!isAllowed && blockTags.has(tag)) {
+                    parts.push(' ');
+                }
+            }
+
+            container.childNodes.forEach(walk);
+            const html = parts.join('').replace(/\s{2,}/g, ' ').trim();
+            const text = container.textContent.replace(/\s+/g, ' ').trim();
+            return { html, text };
+        }
+
+        function normalizeTickerItems(config) {
+            if (!config || typeof config !== 'object') {
+                return [];
+            }
+            if (Array.isArray(config.items)) {
+                return config.items;
+            }
+            if (typeof config.text === 'string' && config.text.trim()) {
+                return [{ text: config.text, bold: false }];
+            }
+            return [];
+        }
+
+        function buildTickerMarkup(items, separator) {
+            const parts = [];
+            items.forEach((item) => {
+                if (!item) {
+                    return;
+                }
+                if (typeof item.html === 'string' && item.html.trim()) {
+                    const sanitized = sanitizeTickerHtml(item.html);
+                    if (sanitized.html) {
+                        parts.push(sanitized.html);
+                        return;
+                    }
+                }
+                if (!item.text) {
+                    return;
+                }
+                const text = String(item.text).trim();
+                if (!text) {
+                    return;
+                }
+                const safeText = escapeTickerHtml(text);
+                if (item.bold) {
+                    parts.push(`<strong class="ticker-strong">${safeText}</strong>`);
+                } else {
+                    parts.push(`<span class="ticker-text">${safeText}</span>`);
+                }
+            });
+            if (!parts.length) {
+                return '';
+            }
+            const safeSep = escapeTickerHtml(separator || '•');
+            const sepMarkup = `<span class="ticker-sep">${safeSep}</span>`;
+            return parts.join(sepMarkup) + sepMarkup;
+        }
+
+        function applyTickerBackground(value) {
+            if (!ticker) {
+                return;
+            }
+            const cleaned = value && typeof value === 'string' ? value.trim() : '';
+            if (cleaned && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(cleaned)) {
+                ticker.style.setProperty('--ticker-bg', cleaned);
+            } else {
+                ticker.style.removeProperty('--ticker-bg');
+            }
+        }
+
+        function applyTickerSizing(config) {
+            if (!ticker) {
+                return;
+            }
+            const fontSize = Number(config && config.font_size);
+            if (Number.isFinite(fontSize) && fontSize > 0) {
+                ticker.style.setProperty('--ticker-font-size', `${fontSize}px`);
+            } else {
+                ticker.style.removeProperty('--ticker-font-size');
+            }
+            const height = Number(config && config.height);
+            if (Number.isFinite(height) && height > 0) {
+                ticker.style.setProperty('--ticker-height', `${height}px`);
+            } else {
+                ticker.style.removeProperty('--ticker-height');
+            }
+            requestAnimationFrame(updatePlayerFit);
+        }
+
+        function updateTickerFromConfig(config) {
+            if (!ticker || !tickerTrack || !tickerItem || !tickerItemClone) {
+                return;
+            }
+            const enabled = config && config.enabled === true;
+            const items = normalizeTickerItems(config);
+            const separator = config && typeof config.separator === 'string' ? config.separator : '•';
+            const markup = buildTickerMarkup(items, separator);
+            if (!enabled || !markup) {
+                ticker.classList.add('hidden');
+                applyTickerSizing(config);
+                requestAnimationFrame(updatePlayerFit);
+                return;
+            }
+            tickerItem.innerHTML = markup;
+            tickerItemClone.innerHTML = markup;
+            const speed = Number(config.speed);
+            const duration = Number.isFinite(speed) ? Math.min(120, Math.max(10, speed)) : 32;
+            tickerTrack.style.setProperty('--ticker-duration', `${duration}s`);
+            applyTickerBackground(config && config.background);
+            applyTickerSizing(config);
+            ticker.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                updateTickerOffset();
+                updatePlayerFit();
+            });
+        }
+
         async function loadPublicConfig() {
             try {
                 const res = await fetch(PUBLIC_CONFIG_URL, { cache: 'no-store' });
@@ -726,6 +1012,7 @@
                     typeof data.public_live === 'boolean' ? data.public_live : true,
                     typeof data.public_hls === 'boolean' ? data.public_hls : true
                 );
+                updateTickerFromConfig(data.ticker);
             } catch (err) {
                 // Ignore public config errors
             }
@@ -735,8 +1022,10 @@
             if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) {
                 return;
             }
+            streamAspectValue = videoElement.videoWidth / videoElement.videoHeight;
             const ratio = `${videoElement.videoWidth} / ${videoElement.videoHeight}`;
             document.documentElement.style.setProperty('--stream-aspect', ratio);
+            updatePlayerFit();
         }
 
         function bindMediaEvents() {
@@ -1167,6 +1456,7 @@
                 tryInitStream();
                 showTapOverlay();
             }
+            updatePlayerFit();
         });
         updateStats();
         setInterval(updateStats, 15000);
@@ -1181,6 +1471,12 @@
 
         window.addEventListener('focus', handleVisibility);
         document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('resize', () => {
+            if (ticker && !ticker.classList.contains('hidden')) {
+                updateTickerOffset();
+            }
+            updatePlayerFit();
+        });
         window.addEventListener('online', () => {
             if (!isStreamAllowed()) {
                 return;

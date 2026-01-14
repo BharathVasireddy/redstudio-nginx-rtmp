@@ -5,11 +5,13 @@ import os
 import sys
 import re
 import secrets
+import html
 import shutil
 import subprocess
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, quote, urlparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -74,6 +76,27 @@ OVERLAY_DEFAULT = {
     "opacity": 1.0,
     "rotate": 0,
 }
+TICKER_TEXT_MAX = int(os.environ.get("TICKER_TEXT_MAX", "220"))
+TICKER_ITEM_TEXT_MAX = int(os.environ.get("TICKER_ITEM_TEXT_MAX", "120"))
+TICKER_SPEED_MIN = int(os.environ.get("TICKER_SPEED_MIN", "10"))
+TICKER_SPEED_MAX = int(os.environ.get("TICKER_SPEED_MAX", "120"))
+TICKER_MAX_ITEMS = int(os.environ.get("TICKER_MAX_ITEMS", "10"))
+TICKER_SEPARATOR_MAX = int(os.environ.get("TICKER_SEPARATOR_MAX", "6"))
+TICKER_FONT_MIN = int(os.environ.get("TICKER_FONT_MIN", "10"))
+TICKER_FONT_MAX = int(os.environ.get("TICKER_FONT_MAX", "28"))
+TICKER_HEIGHT_MIN = int(os.environ.get("TICKER_HEIGHT_MIN", "28"))
+TICKER_HEIGHT_MAX = int(os.environ.get("TICKER_HEIGHT_MAX", "80"))
+TICKER_BG_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+TICKER_DEFAULT = {
+    "enabled": False,
+    "text": "",
+    "speed": 32,
+    "font_size": 14,
+    "height": 40,
+    "background": "",
+    "separator": "•",
+    "items": [],
+}
 
 
 def now_ts() -> int:
@@ -128,11 +151,12 @@ def write_stream_status(active: bool, started_at: Optional[int] = None, ended_at
     tmp_path.replace(STREAM_STATUS_PATH)
 
 
-def write_public_config(public_live: bool, public_hls: bool) -> None:
+def write_public_config(public_live: bool, public_hls: bool, ticker: dict) -> None:
     now = now_ts()
     payload = {
         "public_live": bool(public_live),
         "public_hls": bool(public_hls),
+        "ticker": ticker,
         "updated_at_epoch": now,
         "updated_at": iso_from_ts(now),
     }
@@ -203,6 +227,161 @@ def sanitize_overlay_filename(value: object, ext: str, fallback: str) -> str:
         return fallback
     candidate = f"{stem}.{ext}"
     return candidate if OVERLAY_FILENAME_RE.match(candidate) else fallback
+
+
+def generate_ticker_id() -> str:
+    return secrets.token_hex(4)
+
+
+def sanitize_ticker_color(value: object) -> str:
+    if value is None:
+        return ""
+    candidate = str(value).strip()
+    if not candidate:
+        return ""
+    return candidate if TICKER_BG_RE.match(candidate) else ""
+
+
+def sanitize_ticker_separator(value: object) -> str:
+    if value is None:
+        return ""
+    candidate = str(value).replace("\r", " ").replace("\n", " ").strip()
+    if not candidate:
+        return ""
+    if len(candidate) > TICKER_SEPARATOR_MAX:
+        candidate = candidate[:TICKER_SEPARATOR_MAX].strip()
+    return candidate
+
+
+class TickerHTMLSanitizer(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.text_parts = []
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag in ("b", "strong"):
+            self.parts.append("<strong>")
+        elif tag in ("i", "em"):
+            self.parts.append("<em>")
+        elif tag == "br":
+            self.parts.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("b", "strong"):
+            self.parts.append("</strong>")
+        elif tag in ("i", "em"):
+            self.parts.append("</em>")
+
+    def handle_data(self, data: str) -> None:
+        if not data:
+            return
+        self.parts.append(html.escape(data))
+        self.text_parts.append(data)
+
+    def handle_entityref(self, name: str) -> None:
+        self.handle_data(html.unescape(f"&{name};"))
+
+    def handle_charref(self, name: str) -> None:
+        self.handle_data(html.unescape(f"&#{name};"))
+
+    def get_html(self) -> str:
+        return " ".join("".join(self.parts).split()).strip()
+
+    def get_text(self) -> str:
+        return " ".join("".join(self.text_parts).split()).strip()
+
+
+def sanitize_ticker_html(value: object) -> Tuple[str, str]:
+    if value is None:
+        return "", ""
+    raw = str(value).strip()
+    if not raw:
+        return "", ""
+    parser = TickerHTMLSanitizer()
+    parser.feed(raw)
+    parser.close()
+    return parser.get_html(), parser.get_text()
+
+
+def sanitize_ticker_item(raw: dict, fallback_id: str) -> dict:
+    item_id = raw.get("id") if isinstance(raw.get("id"), str) else ""
+    if not item_id:
+        item_id = fallback_id
+    html_value, text_value = sanitize_ticker_html(raw.get("html"))
+    text = raw.get("text", "")
+    if text is None:
+        text = ""
+    text = str(text).replace("\r", " ").replace("\n", " ").strip()
+    if not text_value:
+        text_value = text
+    if not html_value and text_value:
+        safe_text = html.escape(text_value)
+        if bool(raw.get("bold", False)):
+            html_value = f"<strong>{safe_text}</strong>"
+        else:
+            html_value = safe_text
+    payload = {"id": item_id, "text": text_value, "html": html_value}
+    if "bold" in raw:
+        payload["bold"] = bool(raw.get("bold", False))
+    return payload
+
+
+def sanitize_ticker(payload: dict, fallback: dict) -> dict:
+    raw = payload.get("ticker") if isinstance(payload, dict) else None
+    if not isinstance(raw, dict):
+        raw = {}
+    fallback_raw = fallback.get("ticker") if isinstance(fallback, dict) else None
+    if not isinstance(fallback_raw, dict):
+        fallback_raw = {}
+    enabled = bool(raw.get("enabled", fallback_raw.get("enabled", TICKER_DEFAULT["enabled"])))
+    speed = raw.get("speed", fallback_raw.get("speed", TICKER_DEFAULT["speed"]))
+    speed = clamp_int(speed, TICKER_SPEED_MIN, TICKER_SPEED_MAX, TICKER_DEFAULT["speed"])
+    font_size = raw.get("font_size", fallback_raw.get("font_size", TICKER_DEFAULT["font_size"]))
+    font_size = clamp_int(font_size, TICKER_FONT_MIN, TICKER_FONT_MAX, TICKER_DEFAULT["font_size"])
+    height = raw.get("height", fallback_raw.get("height", TICKER_DEFAULT["height"]))
+    height = clamp_int(height, TICKER_HEIGHT_MIN, TICKER_HEIGHT_MAX, TICKER_DEFAULT["height"])
+    background = sanitize_ticker_color(
+        raw.get("background", fallback_raw.get("background", TICKER_DEFAULT["background"]))
+    )
+    separator = sanitize_ticker_separator(
+        raw.get("separator", fallback_raw.get("separator", TICKER_DEFAULT["separator"]))
+    )
+    if not separator:
+        separator = TICKER_DEFAULT["separator"]
+
+    items_raw = raw.get("items")
+    if not isinstance(items_raw, list):
+        fallback_items = fallback_raw.get("items")
+        items_raw = fallback_items if isinstance(fallback_items, list) else []
+    items = []
+    for item in items_raw:
+        if not isinstance(item, dict):
+            continue
+        items.append(sanitize_ticker_item(item, generate_ticker_id()))
+
+    legacy_text = ""
+    if not items:
+        legacy_text = raw.get("text", fallback_raw.get("text", TICKER_DEFAULT["text"]))
+        if legacy_text is None:
+            legacy_text = ""
+        legacy_text = str(legacy_text).replace("\r", " ").replace("\n", " ").strip()
+        if legacy_text:
+            items = [sanitize_ticker_item({"text": legacy_text, "bold": False}, generate_ticker_id())]
+    items = [item for item in items if item.get("text")]
+    if not legacy_text:
+        legacy_text = f" {separator} ".join([item.get("text", "") for item in items if item.get("text")])
+
+    return {
+        "enabled": enabled,
+        "speed": speed,
+        "font_size": font_size,
+        "height": height,
+        "background": background,
+        "separator": separator,
+        "items": items,
+        "text": legacy_text,
+    }
 
 
 def overlay_storage_path(filename: str) -> Path:
@@ -715,6 +894,7 @@ def load_config() -> dict:
             "ingest_key": "",
             "public_live": True,
             "public_hls": True,
+            "ticker": TICKER_DEFAULT.copy(),
             "overlay": OVERLAY_DEFAULT.copy(),
             "overlays": [sanitize_overlay_item({}, {}, fallback_id="primary")],
         }
@@ -729,10 +909,33 @@ def load_config() -> dict:
         payload["public_hls"] = True
     else:
         payload["public_hls"] = bool(payload["public_hls"])
+    raw_ticker = payload.get("ticker")
+    payload["ticker"] = sanitize_ticker(payload, payload)
     overlays = sanitize_overlays(payload, payload)
     migrate_overlay_files(overlays)
     payload["overlays"] = overlays
     payload["overlay"] = overlays[0] if overlays else OVERLAY_DEFAULT.copy()
+    if raw_ticker != payload["ticker"]:
+        CONFIG_PATH.write_text(
+            json.dumps(
+                {
+                    "destinations": payload.get("destinations", []),
+                    "ingest_key": payload.get("ingest_key", ""),
+                    "public_live": payload.get("public_live", True),
+                    "public_hls": payload.get("public_hls", True),
+                    "ticker": payload.get("ticker", TICKER_DEFAULT.copy()),
+                    "overlay": payload.get("overlay", OVERLAY_DEFAULT.copy()),
+                    "overlays": payload.get("overlays", []),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        write_public_config(
+            payload.get("public_live", True),
+            payload.get("public_hls", True),
+            payload.get("ticker", TICKER_DEFAULT.copy()),
+        )
     return payload
 
 
@@ -740,7 +943,11 @@ if not STREAM_STATUS_PATH.exists():
     write_stream_status(False)
 if not PUBLIC_CONFIG_PATH.exists():
     config = load_config()
-    write_public_config(config.get("public_live", True), config.get("public_hls", True))
+    write_public_config(
+        config.get("public_live", True),
+        config.get("public_hls", True),
+        sanitize_ticker(config, config),
+    )
 
 
 def save_config(payload: dict) -> None:
@@ -757,6 +964,7 @@ def save_config(payload: dict) -> None:
         ingest_key = ""
     public_live = bool(payload.get("public_live", existing.get("public_live", True)))
     public_hls = bool(payload.get("public_hls", existing.get("public_hls", True)))
+    ticker = sanitize_ticker(payload, existing)
     overlays = sanitize_overlays(payload, existing)
     overlay = overlays[0] if overlays else OVERLAY_DEFAULT.copy()
     CONFIG_PATH.write_text(
@@ -766,6 +974,7 @@ def save_config(payload: dict) -> None:
                 "ingest_key": ingest_key,
                 "public_live": public_live,
                 "public_hls": public_hls,
+                "ticker": ticker,
                 "overlay": overlay,
                 "overlays": overlays,
             },
@@ -773,7 +982,7 @@ def save_config(payload: dict) -> None:
         ),
         encoding="utf-8",
     )
-    write_public_config(public_live, public_hls)
+    write_public_config(public_live, public_hls, ticker)
 
 
 def load_ingest_key() -> str:
