@@ -83,7 +83,7 @@ ensure_python() {
 
 prepare_local_files() {
   log "Preparing local config files..."
-  mkdir -p "${ROOT_DIR}/data" "${ROOT_DIR}/temp/hls" "${ROOT_DIR}/logs" "${ROOT_DIR}/conf/data"
+mkdir -p "${ROOT_DIR}/data" "${ROOT_DIR}/temp/hls" "${ROOT_DIR}/temp/hls-abr" "${ROOT_DIR}/logs" "${ROOT_DIR}/conf/data"
   if [[ ! -f "${ROOT_DIR}/data/restream.json" ]]; then
     cp "${ROOT_DIR}/config/restream.default.json" "${ROOT_DIR}/data/restream.json"
   fi

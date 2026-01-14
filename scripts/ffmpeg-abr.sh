@@ -3,16 +3,19 @@ set -euo pipefail
 
 STREAM_NAME="${1:-stream}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HLS_DIR="${ROOT_DIR}/temp/hls"
+HLS_DIR="${ROOT_DIR}/temp/hls-abr"
 LOG_DIR="${ROOT_DIR}/logs"
 LOG_FILE="${LOG_DIR}/ffmpeg-${STREAM_NAME}.log"
 MASTER_PLAYLIST="${HLS_DIR}/master.m3u8"
+INPUT_URL="rtmp://127.0.0.1/live/${STREAM_NAME}"
 
 mkdir -p "${LOG_DIR}"
 exec >> "${LOG_FILE}" 2>&1
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Starting FFmpeg ABR for ${STREAM_NAME}"
 
-pkill -f "ffmpeg .*live/${STREAM_NAME}" 2>/dev/null || true
+pkill -f "ffmpeg .*${INPUT_URL}" 2>/dev/null || true
+pkill -f "ffmpeg .*${HLS_DIR}" 2>/dev/null || true
+sleep 1
 
 mkdir -p "${HLS_DIR}/0" "${HLS_DIR}/1" "${HLS_DIR}/2"
 
@@ -28,8 +31,6 @@ cat > "${MASTER_PLAYLIST}" <<EOF
 2/index.m3u8
 EOF
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Wrote master playlist to ${MASTER_PLAYLIST}"
-
-INPUT_URL="rtmp://127.0.0.1/live/${STREAM_NAME}"
 
 ffmpeg -hide_banner -loglevel warning -stats -y \
   -fflags +genpts -use_wallclock_as_timestamps 1 -thread_queue_size 512 \

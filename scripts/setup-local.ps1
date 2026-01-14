@@ -118,6 +118,7 @@ function Ensure-Dirs {
     $paths = @(
         (Join-Path $Root "data"),
         (Join-Path $Root "temp\hls"),
+        (Join-Path $Root "temp\hls-abr"),
         (Join-Path $Root "logs"),
         (Join-Path $Root "conf\data")
     )

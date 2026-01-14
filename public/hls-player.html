@@ -164,7 +164,7 @@
             </div>
         </div>
         <div class="links">
-            <a class="link-button" href="/hls/master.m3u8">Open Direct Playlist</a>
+            <a class="link-button" href="/hls-abr/master.m3u8">Open Direct Playlist</a>
             <a class="link-button link-secondary" href="/">Back to Live Page</a>
         </div>
         <div class="status" id="statusText">Loading stream...</div>
@@ -174,7 +174,7 @@
     <script>
         const player = document.getElementById('hlsPlayer');
         const statusText = document.getElementById('statusText');
-        const masterUrl = '/hls/master.m3u8';
+        const masterUrl = '/hls-abr/master.m3u8';
         const fallbackUrl = '/hls/stream.m3u8';
         let sourceUrl = fallbackUrl;
         const publicConfigUrl = '/public-config.json';
