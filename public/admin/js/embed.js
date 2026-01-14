@@ -9,7 +9,7 @@ export function buildEmbedUrl() {
     const type = dom.embedType ? dom.embedType.value : 'full';
     const origin = getEmbedBase();
     if (type === 'hls') {
-        return `${origin}/hls-abr/master.m3u8`;
+        return `${origin}/hls/stream.m3u8`;
     }
     if (type === 'embed') {
         const params = new URLSearchParams();

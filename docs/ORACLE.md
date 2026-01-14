@@ -43,7 +43,7 @@ sudo ./deploy.sh
 ## 7) Player URLs
 
 - Website: `https://live.<your-domain>/` (or `http://<server-ip>:8080/` before SSL)
-- HLS: `https://live.<your-domain>/hls-abr/master.m3u8`
+- HLS: `https://live.<your-domain>/hls/stream.m3u8`
 
 ## 7b) SSL (optional)
 
