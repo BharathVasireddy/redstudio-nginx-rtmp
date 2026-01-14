@@ -452,11 +452,11 @@
             if (window.Hls && Hls.isSupported()) {
                 const hls = new Hls({
                     lowLatencyMode: false,
-                    maxBufferLength: 60,
-                    maxMaxBufferLength: 120,
-                    backBufferLength: 60,
-                    liveSyncDurationCount: 3,
-                    liveMaxLatencyDurationCount: 9,
+                    maxBufferLength: 90,
+                    maxMaxBufferLength: 180,
+                    backBufferLength: 90,
+                    liveSyncDurationCount: 4,
+                    liveMaxLatencyDurationCount: 12,
                     maxLiveSyncPlaybackRate: 1
                 });
                 hls.loadSource(sourceUrl);
