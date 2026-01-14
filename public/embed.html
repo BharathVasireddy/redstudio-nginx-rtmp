@@ -178,7 +178,9 @@
         const showStats = params.get('stats') === '1';
         const startMuted = params.get('muted') === '1';
 
-        const STREAM_URL = '/hls/stream.m3u8';
+        const MASTER_STREAM_URL = '/hls/master.m3u8';
+        const FALLBACK_STREAM_URL = '/hls/stream.m3u8';
+        let resolvedStreamUrl = FALLBACK_STREAM_URL;
         const PUBLIC_CONFIG_URL = '/public-config.json';
         const videoElement = document.getElementById('player');
         const liveBadge = document.getElementById('liveBadge');
@@ -210,6 +212,20 @@
         let publicLiveAllowed = true;
         let publicHlsAllowed = true;
         let streamStarted = false;
+
+        async function resolveStreamUrl() {
+            try {
+                const res = await fetch(MASTER_STREAM_URL, { method: 'HEAD', cache: 'no-store' });
+                if (res.ok) {
+                    resolvedStreamUrl = MASTER_STREAM_URL;
+                    return resolvedStreamUrl;
+                }
+            } catch (err) {
+                // Ignore and fall back
+            }
+            resolvedStreamUrl = FALLBACK_STREAM_URL;
+            return resolvedStreamUrl;
+        }
 
         function setOfflineCopy(title, hint) {
             if (offlineTitle) {
@@ -297,7 +313,7 @@
             }
         }
 
-        function startStream() {
+        async function startStream() {
             if (!isStreamAllowed()) {
                 return;
             }
@@ -308,7 +324,8 @@
                 attemptPlay();
                 return;
             }
-            attachSource(STREAM_URL);
+            const url = await resolveStreamUrl();
+            attachSource(url);
             streamStarted = true;
             attemptPlay();
         }
@@ -317,10 +334,11 @@
             if (window.Hls && Hls.isSupported()) {
                 hls = new Hls({
                     lowLatencyMode: false,
-                    maxBufferLength: 30,
-                    backBufferLength: 30,
-                    liveSyncDurationCount: 2,
-                    liveMaxLatencyDurationCount: 6,
+                    maxBufferLength: 90,
+                    maxMaxBufferLength: 180,
+                    backBufferLength: 90,
+                    liveSyncDurationCount: 4,
+                    liveMaxLatencyDurationCount: 12,
                     maxLiveSyncPlaybackRate: 1
                 });
                 hls.on(Hls.Events.ERROR, (event, data) => handleHlsError(data));

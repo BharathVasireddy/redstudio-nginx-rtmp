@@ -2,6 +2,19 @@ import { STREAM_URL } from './constants.js';
 import { dom } from './dom.js';
 
 let previewPlayer = null;
+const FALLBACK_STREAM_URL = '/hls/stream.m3u8';
+
+async function resolvePreviewUrl() {
+    try {
+        const res = await fetch(STREAM_URL, { method: 'HEAD', cache: 'no-store' });
+        if (res.ok) {
+            return STREAM_URL;
+        }
+    } catch (err) {
+        // Ignore and fall back
+    }
+    return FALLBACK_STREAM_URL;
+}
 
 export function initPreviewPlayer() {
     const videoElement = dom.previewPlayer;
@@ -21,33 +34,36 @@ export function initPreviewPlayer() {
         keyboard: { focused: false, global: false }
     });
 
-    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-        const hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: false,
-            maxBufferLength: 30,
-            backBufferLength: 30,
-            liveSyncDurationCount: 2,
-            liveMaxLatencyDurationCount: 6,
-            maxLiveSyncPlaybackRate: 1
-        });
-        hls.loadSource(STREAM_URL);
-        hls.attachMedia(videoElement);
-        hls.on(Hls.Events.ERROR, function (event, data) {
-            if (data.fatal) {
-                if (dom.previewOffline) {
-                    dom.previewOffline.classList.remove('hidden');
+    resolvePreviewUrl().then((url) => {
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            const hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+                maxBufferLength: 90,
+                maxMaxBufferLength: 180,
+                backBufferLength: 90,
+                liveSyncDurationCount: 4,
+                liveMaxLatencyDurationCount: 12,
+                maxLiveSyncPlaybackRate: 1
+            });
+            hls.loadSource(url);
+            hls.attachMedia(videoElement);
+            hls.on(Hls.Events.ERROR, function (event, data) {
+                if (data.fatal) {
+                    if (dom.previewOffline) {
+                        dom.previewOffline.classList.remove('hidden');
+                    }
                 }
-            }
-        });
-        hls.on(Hls.Events.MANIFEST_PARSED, function () {
-            if (dom.previewOffline) {
-                dom.previewOffline.classList.add('hidden');
-            }
-        });
-    } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-        videoElement.src = STREAM_URL;
-    }
+            });
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                if (dom.previewOffline) {
+                    dom.previewOffline.classList.add('hidden');
+                }
+            });
+        } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+            videoElement.src = url;
+        }
+    });
 
     previewPlayer.on('playing', () => {
         if (dom.previewOffline) {

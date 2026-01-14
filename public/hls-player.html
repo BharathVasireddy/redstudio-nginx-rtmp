@@ -164,7 +164,7 @@
             </div>
         </div>
         <div class="links">
-            <a class="link-button" href="/hls/stream.m3u8">Open Direct Playlist</a>
+            <a class="link-button" href="/hls/master.m3u8">Open Direct Playlist</a>
             <a class="link-button link-secondary" href="/">Back to Live Page</a>
         </div>
         <div class="status" id="statusText">Loading stream...</div>
@@ -174,10 +174,13 @@
     <script>
         const player = document.getElementById('hlsPlayer');
         const statusText = document.getElementById('statusText');
-        const sourceUrl = '/hls/stream.m3u8';
+        const masterUrl = '/hls/master.m3u8';
+        const fallbackUrl = '/hls/stream.m3u8';
+        let sourceUrl = fallbackUrl;
         const publicConfigUrl = '/public-config.json';
         const statusUrl = '/stream-status.json';
         const links = document.querySelector('.links');
+        const directLink = document.querySelector('.link-button');
         const ticker = document.getElementById('ticker');
         const tickerTrack = document.getElementById('tickerTrack');
         const tickerItem = document.getElementById('tickerItem');
@@ -193,6 +196,23 @@
 
         function setStatus(message) {
             statusText.textContent = message;
+        }
+
+        async function resolveStreamUrl() {
+            try {
+                const res = await fetch(masterUrl, { method: 'HEAD', cache: 'no-store' });
+                if (res.ok) {
+                    sourceUrl = masterUrl;
+                } else {
+                    sourceUrl = fallbackUrl;
+                }
+            } catch (err) {
+                sourceUrl = fallbackUrl;
+            }
+            if (directLink) {
+                directLink.href = sourceUrl;
+            }
+            return sourceUrl;
         }
 
         function updateTickerOffset() {
@@ -433,6 +453,7 @@
             updateTickerFromConfig(lastTickerConfig);
             updateStreamStatus();
             updatePlayerFit();
+            await resolveStreamUrl();
             if (!publicConfig.allowed) {
                 player.removeAttribute('src');
                 player.style.display = 'none';

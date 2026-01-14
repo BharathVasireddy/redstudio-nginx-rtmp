@@ -1,5 +1,5 @@
 export const API_BASE = '/admin/api';
-export const STREAM_URL = '/hls/stream.m3u8';
+export const STREAM_URL = '/hls/master.m3u8';
 
 export const defaultDestinations = [
     {
