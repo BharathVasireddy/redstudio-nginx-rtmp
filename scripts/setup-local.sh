@@ -92,13 +92,13 @@ prepare_local_files() {
     "${ROOT_DIR}/data/restream.json" \
     "${ROOT_DIR}/data/restream.conf"
   ln -sf "${ROOT_DIR}/data/restream.conf" "${ROOT_DIR}/conf/data/restream.conf"
-  "${PYTHON_BIN}" - <<'PY' "${ROOT_DIR}/data/restream.json" "${ROOT_DIR}/data/public-config.json" "${ROOT_DIR}/data/public-hls.conf"
+  "${PYTHON_BIN}" - <<'PY' "${ROOT_DIR}/data/restream.json" "${ROOT_DIR}/data/public-config.json" "${ROOT_DIR}/data/public-hls.conf" "${ROOT_DIR}/data/overlay-bypass.conf"
 import json
 import sys
 import time
 from datetime import datetime, timezone
 
-json_file, public_config, public_hls_conf = sys.argv[1], sys.argv[2], sys.argv[3]
+json_file, public_config, public_hls_conf, overlay_bypass_conf = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
 try:
     with open(json_file, "r", encoding="utf-8") as fh:
@@ -108,6 +108,20 @@ except FileNotFoundError:
 
 public_live = bool(data.get("public_live", True))
 public_hls = bool(data.get("public_hls", True))
+overlay_active = False
+raw_overlays = data.get("overlays")
+if not isinstance(raw_overlays, list):
+    raw_overlay = data.get("overlay")
+    raw_overlays = [raw_overlay] if isinstance(raw_overlay, dict) else []
+for item in raw_overlays:
+    if not isinstance(item, dict):
+        continue
+    if not bool(item.get("enabled")):
+        continue
+    image_file = str(item.get("image_file", "") or "").strip()
+    if image_file:
+        overlay_active = True
+        break
 
 now = int(time.time())
 payload = {
@@ -122,6 +136,12 @@ with open(public_config, "w", encoding="utf-8") as fh:
 
 with open(public_hls_conf, "w", encoding="utf-8") as fh:
     fh.write(f"set $public_hls {1 if public_hls else 0};\n")
+
+with open(overlay_bypass_conf, "w", encoding="utf-8") as fh:
+    if overlay_active:
+        fh.write("# overlay pipeline active\n")
+    else:
+        fh.write("push rtmp://127.0.0.1/live/$name;\n")
 PY
 }
 

@@ -9,12 +9,14 @@ $jsonFile = Join-Path $dataDir "restream.json"
 $confFile = Join-Path $dataDir "restream.conf"
 $publicConfigFile = Join-Path $dataDir "public-config.json"
 $publicHlsConf = Join-Path $dataDir "public-hls.conf"
+$overlayBypassConf = Join-Path $dataDir "overlay-bypass.conf"
 $confCopy = Join-Path $Root "conf\data\restream.conf"
 $defaultConfig = Join-Path $Root "config\restream.default.json"
 $nginxExe = Join-Path $Root "nginx.exe"
 $restart = ($env:RESTART_NGINX -eq "1")
 $confBefore = if (Test-Path $confFile) { Get-Content $confFile -Raw } else { "" }
 $publicHlsBefore = if (Test-Path $publicHlsConf) { Get-Content $publicHlsConf -Raw } else { "" }
+$overlayBypassBefore = if (Test-Path $overlayBypassConf) { Get-Content $overlayBypassConf -Raw } else { "" }
 
 function Clean-Value {
     param([string]$Value)
@@ -69,6 +71,40 @@ if ($data.PSObject.Properties.Name -contains "public_live") {
 }
 if ($data.PSObject.Properties.Name -contains "public_hls") {
     $publicHls = [bool]$data.public_hls
+}
+$overlayActive = $false
+if ($data.PSObject.Properties.Name -contains "overlays" -and $data.overlays) {
+    foreach ($item in $data.overlays) {
+        if (-not $item) { continue }
+        $enabled = $false
+        if ($item.PSObject.Properties.Name -contains "enabled") {
+            $enabled = [bool]$item.enabled
+        }
+        if (-not $enabled) { continue }
+        $imageFile = ""
+        if ($item.PSObject.Properties.Name -contains "image_file") {
+            $imageFile = [string]$item.image_file
+        }
+        if ($imageFile.Trim()) {
+            $overlayActive = $true
+            break
+        }
+    }
+} elseif ($data.PSObject.Properties.Name -contains "overlay" -and $data.overlay) {
+    $item = $data.overlay
+    $enabled = $false
+    if ($item.PSObject.Properties.Name -contains "enabled") {
+        $enabled = [bool]$item.enabled
+    }
+    if ($enabled) {
+        $imageFile = ""
+        if ($item.PSObject.Properties.Name -contains "image_file") {
+            $imageFile = [string]$item.image_file
+        }
+        if ($imageFile.Trim()) {
+            $overlayActive = $true
+        }
+    }
 }
 
 $tickerEnabled = $false
@@ -201,12 +237,19 @@ $publicPayload = [ordered]@{
 }
 $publicPayload | ConvertTo-Json -Compress | Out-File -FilePath $publicConfigFile -Encoding ASCII -Force
 ("set `$public_hls " + ($(if ($publicHls) { "1" } else { "0" })) + ";") | Out-File -FilePath $publicHlsConf -Encoding ASCII -Force
+if ($overlayActive) {
+    "# overlay pipeline active" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
+} else {
+    "push rtmp://127.0.0.1/live/`$name;" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
+}
 
 $confAfter = Get-Content $confFile -Raw
 $publicHlsAfter = Get-Content $publicHlsConf -Raw
+$overlayBypassAfter = if (Test-Path $overlayBypassConf) { Get-Content $overlayBypassConf -Raw } else { "" }
 $confChanged = $confBefore -ne $confAfter
 $publicHlsChanged = $publicHlsBefore -ne $publicHlsAfter
-$needsReload = $restart -or $confChanged -or $publicHlsChanged
+$overlayBypassChanged = $overlayBypassBefore -ne $overlayBypassAfter
+$needsReload = $restart -or $confChanged -or $publicHlsChanged -or $overlayBypassChanged
 
 if (!(Test-Path $nginxExe)) {
     Write-Error "nginx.exe not found in repo root."

@@ -11,6 +11,7 @@ STUNNEL_MERGED="${DATA_DIR}/stunnel-rtmps.merged.conf"
 RTMPS_MARKER="${DATA_DIR}/rtmps-enabled"
 PUBLIC_CONFIG_FILE="${DATA_DIR}/public-config.json"
 PUBLIC_HLS_CONF_FILE="${DATA_DIR}/public-hls.conf"
+OVERLAY_BYPASS_CONF_FILE="${DATA_DIR}/overlay-bypass.conf"
 NGINX_BIN="/usr/local/nginx/sbin/nginx"
 LOCAL_CONF="${ROOT_DIR}/conf/nginx.local.conf"
 
@@ -21,6 +22,10 @@ fi
 PUBLIC_HLS_BEFORE=""
 if [ -f "${PUBLIC_HLS_CONF_FILE}" ]; then
     PUBLIC_HLS_BEFORE="$(cat "${PUBLIC_HLS_CONF_FILE}")"
+fi
+OVERLAY_BYPASS_BEFORE=""
+if [ -f "${OVERLAY_BYPASS_CONF_FILE}" ]; then
+    OVERLAY_BYPASS_BEFORE="$(cat "${OVERLAY_BYPASS_CONF_FILE}")"
 fi
 
 run_cmd() {
@@ -126,14 +131,14 @@ if [ -f "${STUNNEL_SNIPPET}" ] && grep -q '^[[]' "${STUNNEL_SNIPPET}"; then
 else
     rm -f "${RTMPS_MARKER}"
 fi
-python3 - <<'PY' "${JSON_FILE}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}"
+python3 - <<'PY' "${JSON_FILE}" "${PUBLIC_CONFIG_FILE}" "${PUBLIC_HLS_CONF_FILE}" "${OVERLAY_BYPASS_CONF_FILE}"
 import json
 import re
 import sys
 import time
 from datetime import datetime, timezone
 
-json_file, public_config, public_hls_conf = sys.argv[1], sys.argv[2], sys.argv[3]
+json_file, public_config, public_hls_conf, overlay_bypass_conf = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
 try:
     with open(json_file, "r", encoding="utf-8") as fh:
@@ -143,6 +148,20 @@ except FileNotFoundError:
 
 public_live = bool(data.get("public_live", True))
 public_hls = bool(data.get("public_hls", True))
+overlay_active = False
+raw_overlays = data.get("overlays")
+if not isinstance(raw_overlays, list):
+    raw_overlay = data.get("overlay")
+    raw_overlays = [raw_overlay] if isinstance(raw_overlay, dict) else []
+for item in raw_overlays:
+    if not isinstance(item, dict):
+        continue
+    if not bool(item.get("enabled")):
+        continue
+    image_file = str(item.get("image_file", "") or "").strip()
+    if image_file:
+        overlay_active = True
+        break
 ticker = data.get("ticker") if isinstance(data, dict) else {}
 if not isinstance(ticker, dict):
     ticker = {}
@@ -245,6 +264,12 @@ with open(public_config, "w", encoding="utf-8") as fh:
 
 with open(public_hls_conf, "w", encoding="utf-8") as fh:
     fh.write(f"set $public_hls {1 if public_hls else 0};\n")
+
+with open(overlay_bypass_conf, "w", encoding="utf-8") as fh:
+    if overlay_active:
+        fh.write("# overlay pipeline active\n")
+    else:
+        fh.write("push rtmp://127.0.0.1/live/$name;\n")
 PY
 
 CONF_AFTER=""
@@ -255,18 +280,26 @@ PUBLIC_HLS_AFTER=""
 if [ -f "${PUBLIC_HLS_CONF_FILE}" ]; then
     PUBLIC_HLS_AFTER="$(cat "${PUBLIC_HLS_CONF_FILE}")"
 fi
+OVERLAY_BYPASS_AFTER=""
+if [ -f "${OVERLAY_BYPASS_CONF_FILE}" ]; then
+    OVERLAY_BYPASS_AFTER="$(cat "${OVERLAY_BYPASS_CONF_FILE}")"
+fi
 
 CONF_CHANGED=0
 PUBLIC_HLS_CHANGED=0
+OVERLAY_BYPASS_CHANGED=0
 if [ "${CONF_BEFORE}" != "${CONF_AFTER}" ]; then
     CONF_CHANGED=1
 fi
 if [ "${PUBLIC_HLS_BEFORE}" != "${PUBLIC_HLS_AFTER}" ]; then
     PUBLIC_HLS_CHANGED=1
 fi
+if [ "${OVERLAY_BYPASS_BEFORE}" != "${OVERLAY_BYPASS_AFTER}" ]; then
+    OVERLAY_BYPASS_CHANGED=1
+fi
 
 NEED_RELOAD=0
-if [ "${CONF_CHANGED}" = "1" ] || [ "${PUBLIC_HLS_CHANGED}" = "1" ]; then
+if [ "${CONF_CHANGED}" = "1" ] || [ "${PUBLIC_HLS_CHANGED}" = "1" ] || [ "${OVERLAY_BYPASS_CHANGED}" = "1" ]; then
     NEED_RELOAD=1
 fi
 

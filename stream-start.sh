@@ -14,19 +14,19 @@ if [ ! -f data/restream.conf ]; then
   fi
   python3 scripts/restream-generate.py data/restream.json data/restream.conf
 fi
-if [ ! -f data/public-config.json ] || [ ! -f data/public-hls.conf ]; then
+if [ ! -f data/public-config.json ] || [ ! -f data/public-hls.conf ] || [ ! -f data/overlay-bypass.conf ]; then
   if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 not found. Install python3 and retry." >&2
     exit 1
   fi
-  python3 - <<'PY' data/restream.json data/public-config.json data/public-hls.conf
+  python3 - <<'PY' data/restream.json data/public-config.json data/public-hls.conf data/overlay-bypass.conf
 import json
 import re
 import sys
 import time
 from datetime import datetime, timezone
 
-json_file, public_config, public_hls_conf = sys.argv[1], sys.argv[2], sys.argv[3]
+json_file, public_config, public_hls_conf, overlay_bypass_conf = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
 try:
     with open(json_file, "r", encoding="utf-8") as fh:
@@ -36,6 +36,20 @@ except FileNotFoundError:
 
 public_live = bool(data.get("public_live", True))
 public_hls = bool(data.get("public_hls", True))
+overlay_active = False
+raw_overlays = data.get("overlays")
+if not isinstance(raw_overlays, list):
+    raw_overlay = data.get("overlay")
+    raw_overlays = [raw_overlay] if isinstance(raw_overlay, dict) else []
+for item in raw_overlays:
+    if not isinstance(item, dict):
+        continue
+    if not bool(item.get("enabled")):
+        continue
+    image_file = str(item.get("image_file", "") or "").strip()
+    if image_file:
+        overlay_active = True
+        break
 ticker = data.get("ticker") if isinstance(data, dict) else {}
 if not isinstance(ticker, dict):
     ticker = {}
@@ -138,6 +152,12 @@ with open(public_config, "w", encoding="utf-8") as fh:
 
 with open(public_hls_conf, "w", encoding="utf-8") as fh:
     fh.write(f"set $public_hls {1 if public_hls else 0};\n")
+
+with open(overlay_bypass_conf, "w", encoding="utf-8") as fh:
+    if overlay_active:
+        fh.write("# overlay pipeline active\n")
+    else:
+        fh.write("push rtmp://127.0.0.1/live/$name;\n")
 PY
 fi
 mkdir -p conf/data

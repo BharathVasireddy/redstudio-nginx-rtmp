@@ -36,6 +36,7 @@ fi
 OVERLAY_COUNT="0"
 OVERLAY_FILTER_COMPLEX=""
 OVERLAY_VIDEO_LABEL=""
+OVERLAY_BYPASS_FILE="${ROOT_DIR}/data/overlay-bypass.conf"
 
 OVERLAY_CONFIG="$(python3 - <<'PY' "${CONFIG_FILE}" "${ROOT_DIR}/data"
 import json
@@ -200,6 +201,13 @@ PY
 
 if [ -n "${OVERLAY_CONFIG}" ]; then
     eval "${OVERLAY_CONFIG}"
+fi
+
+if [ "${OVERLAY_COUNT}" -eq 0 ]; then
+    if [ -f "${OVERLAY_BYPASS_FILE}" ] && grep -q "push rtmp://127.0.0.1/live" "${OVERLAY_BYPASS_FILE}"; then
+        echo "No overlays enabled; bypassing FFmpeg pipeline."
+        exit 0
+    fi
 fi
 
 INPUT_URL="rtmp://127.0.0.1/ingest/${STREAM_NAME}"
