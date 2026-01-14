@@ -240,7 +240,7 @@ $publicPayload | ConvertTo-Json -Compress | Out-File -FilePath $publicConfigFile
 if ($overlayActive) {
     "# overlay pipeline active" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
 } else {
-    "push rtmp://127.0.0.1/live/`$name;" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
+    "push rtmp://127.0.0.1/live/stream;" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
 }
 
 $confAfter = Get-Content $confFile -Raw

@@ -25,7 +25,7 @@ copy /y data\restream.conf conf\data\restream.conf >nul 2>&1
 if not exist data\public-hls.conf echo set $public_hls 1;> data\public-hls.conf
 if not exist data\public-config.json echo {"public_live":true,"public_hls":true}> data\public-config.json
 if not exist data\overlay-bypass.conf (
-  powershell -NoProfile -Command "$cfg=Get-Content -Raw 'data/restream.json' | ConvertFrom-Json; $overlays=$cfg.overlays; if (-not $overlays) { $overlays=@(); if ($cfg.overlay) { $overlays=@($cfg.overlay) } }; $active=$false; foreach ($o in $overlays) { if ($o -and $o.enabled -and $o.image_file) { $active=$true; break } }; if ($active) { '# overlay pipeline active' } else { 'push rtmp://127.0.0.1/live/$name;' }" > data\overlay-bypass.conf
+  powershell -NoProfile -Command "$cfg=Get-Content -Raw 'data/restream.json' | ConvertFrom-Json; $overlays=$cfg.overlays; if (-not $overlays) { $overlays=@(); if ($cfg.overlay) { $overlays=@($cfg.overlay) } }; $active=$false; foreach ($o in $overlays) { if ($o -and $o.enabled -and $o.image_file) { $active=$true; break } }; if ($active) { '# overlay pipeline active' } else { 'push rtmp://127.0.0.1/live/stream;' }" > data\overlay-bypass.conf
 )
 
 if not exist data\admin.credentials (

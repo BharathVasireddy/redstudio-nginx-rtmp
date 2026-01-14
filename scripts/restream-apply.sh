@@ -269,7 +269,7 @@ with open(overlay_bypass_conf, "w", encoding="utf-8") as fh:
     if overlay_active:
         fh.write("# overlay pipeline active\n")
     else:
-        fh.write("push rtmp://127.0.0.1/live/$name;\n")
+        fh.write("push rtmp://127.0.0.1/live/stream;\n")
 PY
 
 CONF_AFTER=""
