@@ -723,6 +723,8 @@
         const HLS_DISABLED_TITLE = 'Stream Restricted';
         const HLS_DISABLED_HINT = 'The HLS stream is disabled by the admin.';
         let streamAspectValue = 16 / 9;
+        let streamActive = false;
+        let lastTickerConfig = null;
 
         function isStreamAllowed() {
             return publicLiveAllowed && publicHlsAllowed;
@@ -981,7 +983,7 @@
             const items = normalizeTickerItems(config);
             const separator = config && typeof config.separator === 'string' ? config.separator : '•';
             const markup = buildTickerMarkup(items, separator);
-            if (!enabled || !markup) {
+            if (!streamActive || !isStreamAllowed() || !enabled || !markup) {
                 ticker.classList.add('hidden');
                 applyTickerSizing(config);
                 requestAnimationFrame(updatePlayerFit);
@@ -1012,7 +1014,8 @@
                     typeof data.public_live === 'boolean' ? data.public_live : true,
                     typeof data.public_hls === 'boolean' ? data.public_hls : true
                 );
-                updateTickerFromConfig(data.ticker);
+                lastTickerConfig = data.ticker;
+                updateTickerFromConfig(lastTickerConfig);
             } catch (err) {
                 // Ignore public config errors
             }
@@ -1429,6 +1432,7 @@
 
             if (statusRes.status === 'fulfilled' && statusRes.value.ok) {
                 const data = await statusRes.value.json();
+                streamActive = Boolean(data.active);
                 if (liveSinceEl) {
                     if (data.active) {
                         liveSinceEl.textContent = formatStartTime(
@@ -1439,6 +1443,7 @@
                     }
                 }
                 setStatsVisibility(Boolean(data.active) && isStreamAllowed());
+                updateTickerFromConfig(lastTickerConfig);
             } else if (liveSinceEl) {
                 liveSinceEl.textContent = '—';
                 setStatsVisibility(false);

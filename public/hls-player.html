@@ -176,6 +176,7 @@
         const statusText = document.getElementById('statusText');
         const sourceUrl = '/hls/stream.m3u8';
         const publicConfigUrl = '/public-config.json';
+        const statusUrl = '/stream-status.json';
         const links = document.querySelector('.links');
         const ticker = document.getElementById('ticker');
         const tickerTrack = document.getElementById('tickerTrack');
@@ -186,6 +187,9 @@
         const titleEl = document.querySelector('.title');
         const hintEl = document.querySelector('.hint');
         let streamAspectValue = 16 / 9;
+        let streamActive = false;
+        let lastTickerConfig = null;
+        let hlsAllowed = true;
 
         function setStatus(message) {
             statusText.textContent = message;
@@ -369,7 +373,7 @@
             const items = normalizeTickerItems(config);
             const separator = config && typeof config.separator === 'string' ? config.separator : '•';
             const markup = buildTickerMarkup(items, separator);
-            if (!enabled || !markup) {
+            if (!hlsAllowed || !streamActive || !enabled || !markup) {
                 ticker.classList.add('hidden');
                 applyTickerSizing(config);
                 requestAnimationFrame(updatePlayerFit);
@@ -408,9 +412,26 @@
             return { allowed, ticker: tickerConfig };
         }
 
+        async function updateStreamStatus() {
+            try {
+                const res = await fetch(statusUrl, { cache: 'no-store' });
+                if (!res.ok) {
+                    return;
+                }
+                const data = await res.json();
+                streamActive = Boolean(data.active);
+                updateTickerFromConfig(lastTickerConfig);
+            } catch (err) {
+                // Ignore stream status errors
+            }
+        }
+
         async function initPlayer() {
             const publicConfig = await loadPublicConfig();
-            updateTickerFromConfig(publicConfig.ticker);
+            hlsAllowed = publicConfig.allowed;
+            lastTickerConfig = publicConfig.ticker;
+            updateTickerFromConfig(lastTickerConfig);
+            updateStreamStatus();
             updatePlayerFit();
             if (!publicConfig.allowed) {
                 player.removeAttribute('src');
@@ -464,6 +485,7 @@
             }
             updatePlayerFit();
         });
+        setInterval(updateStreamStatus, 15000);
     </script>
 </body>
 </html>
