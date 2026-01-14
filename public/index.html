@@ -1175,10 +1175,11 @@
                 }
                 hls = new Hls({
                     lowLatencyMode: false,
-                    maxBufferLength: 30,
-                    backBufferLength: 30,
-                    liveSyncDurationCount: 2,
-                    liveMaxLatencyDurationCount: 6,
+                    maxBufferLength: 60,
+                    maxMaxBufferLength: 120,
+                    backBufferLength: 60,
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 9,
                     maxLiveSyncPlaybackRate: 1
                 });
                 hls.on(Hls.Events.ERROR, (event, data) => {
