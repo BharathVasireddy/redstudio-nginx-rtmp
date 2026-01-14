@@ -6,6 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HLS_DIR="${ROOT_DIR}/temp/hls"
 LOG_DIR="${ROOT_DIR}/logs"
 LOG_FILE="${LOG_DIR}/ffmpeg-${STREAM_NAME}.log"
+MASTER_PLAYLIST="${HLS_DIR}/master.m3u8"
 
 mkdir -p "${LOG_DIR}"
 exec >> "${LOG_FILE}" 2>&1
@@ -14,6 +15,19 @@ echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Starting FFmpeg ABR for ${STREAM_NAME}"
 pkill -f "ffmpeg .*live/${STREAM_NAME}" 2>/dev/null || true
 
 mkdir -p "${HLS_DIR}/0" "${HLS_DIR}/1" "${HLS_DIR}/2"
+
+cat > "${MASTER_PLAYLIST}" <<EOF
+#EXTM3U
+#EXT-X-VERSION:6
+#EXT-X-INDEPENDENT-SEGMENTS
+#EXT-X-STREAM-INF:BANDWIDTH=5200000,RESOLUTION=1920x1080
+0/index.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3200000,RESOLUTION=1280x720
+1/index.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=1600000,RESOLUTION=854x480
+2/index.m3u8
+EOF
+echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Wrote master playlist to ${MASTER_PLAYLIST}"
 
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_NAME}"
 
@@ -38,8 +52,7 @@ ffmpeg -hide_banner -loglevel warning -stats -y \
   -b:v:2 1500k -maxrate:v:2 1600k -bufsize:v:2 3000k \
   -c:a:2 aac -b:a:2 96k -ar:a:2 48000 -ac:a:2 2 -af:a:2 "aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
   -f hls -hls_time 4 -hls_list_size 16 \
-  -hls_flags delete_segments+append_list+program_date_time+independent_segments \
+  -hls_flags delete_segments+append_list+program_date_time+independent_segments+temp_file \
   -hls_segment_filename "${HLS_DIR}/%v/seg_%05d.ts" \
-  -master_pl_name master.m3u8 \
   -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2" \
   "${HLS_DIR}/%v/index.m3u8"
