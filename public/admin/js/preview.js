@@ -39,11 +39,11 @@ export function initPreviewPlayer() {
             const hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: false,
-                maxBufferLength: 120,
-                maxMaxBufferLength: 240,
-                backBufferLength: 120,
-                liveSyncDurationCount: 6,
-                liveMaxLatencyDurationCount: 20,
+                maxBufferLength: 180,
+                maxMaxBufferLength: 600,
+                backBufferLength: 180,
+                liveSyncDurationCount: 12,
+                liveMaxLatencyDurationCount: 30,
                 maxLiveSyncPlaybackRate: 1
             });
             hls.loadSource(url);
