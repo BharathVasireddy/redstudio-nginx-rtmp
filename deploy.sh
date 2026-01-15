@@ -20,6 +20,7 @@ ADMIN_HTPASSWD="${DATA_DIR}/admin.htpasswd"
 ADMIN_CREDS="${DATA_DIR}/admin.credentials"
 RESTREAM_JSON="${DATA_DIR}/restream.json"
 RESTREAM_CONF="${DATA_DIR}/restream.conf"
+RESTREAM_OVERRIDE="${REPO_DIR}/config/restream.override.json"
 STUNNEL_SNIPPET="${DATA_DIR}/stunnel-rtmps.conf"
 STUNNEL_CONF="/etc/stunnel/stunnel.conf"
 STUNNEL_MERGED="${DATA_DIR}/stunnel-rtmps.merged.conf"
@@ -156,6 +157,28 @@ sudo mkdir -p "${DATA_DIR}"
 sudo chown -R "$(id -un)":"$(id -gn)" "${DATA_DIR}"
 if [ ! -f "${RESTREAM_JSON}" ]; then
     cp "${REPO_DIR}/config/restream.default.json" "${RESTREAM_JSON}"
+fi
+if [ -f "${RESTREAM_OVERRIDE}" ]; then
+    python3 - <<'PY' "${RESTREAM_JSON}" "${RESTREAM_OVERRIDE}"
+import json
+import sys
+
+target, override = sys.argv[1], sys.argv[2]
+try:
+    with open(target, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except FileNotFoundError:
+    data = {}
+try:
+    with open(override, "r", encoding="utf-8") as fh:
+        overrides = json.load(fh)
+except FileNotFoundError:
+    overrides = {}
+if isinstance(overrides, dict):
+    data.update(overrides)
+    with open(target, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+PY
 fi
 python3 "${REPO_DIR}/scripts/restream-generate.py" "${RESTREAM_JSON}" "${RESTREAM_CONF}" "${STUNNEL_SNIPPET}"
 if [ -f "${STUNNEL_SNIPPET}" ] && grep -q '^[[]' "${STUNNEL_SNIPPET}"; then

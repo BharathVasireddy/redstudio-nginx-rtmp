@@ -1,0 +1,5 @@
+{
+  "transcode_bitrate_kbps": 2200,
+  "transcode_maxrate_kbps": 2800,
+  "transcode_bufsize_kbps": 5000
+}

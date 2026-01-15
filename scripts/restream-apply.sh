@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="${ROOT_DIR}/data"
 JSON_FILE="${DATA_DIR}/restream.json"
 CONF_FILE="${DATA_DIR}/restream.conf"
+RESTREAM_OVERRIDE="${ROOT_DIR}/config/restream.override.json"
 STUNNEL_SNIPPET="${DATA_DIR}/stunnel-rtmps.conf"
 STUNNEL_CONF="/etc/stunnel/stunnel.conf"
 STUNNEL_MERGED="${DATA_DIR}/stunnel-rtmps.merged.conf"
@@ -123,6 +124,28 @@ ensure_sudo() {
 
 if [ ! -f "${JSON_FILE}" ]; then
     cp "${ROOT_DIR}/config/restream.default.json" "${JSON_FILE}"
+fi
+if [ -f "${RESTREAM_OVERRIDE}" ]; then
+    python3 - <<'PY' "${JSON_FILE}" "${RESTREAM_OVERRIDE}"
+import json
+import sys
+
+target, override = sys.argv[1], sys.argv[2]
+try:
+    with open(target, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+except FileNotFoundError:
+    data = {}
+try:
+    with open(override, "r", encoding="utf-8") as fh:
+        overrides = json.load(fh)
+except FileNotFoundError:
+    overrides = {}
+if isinstance(overrides, dict):
+    data.update(overrides)
+    with open(target, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+PY
 fi
 
 python3 "${ROOT_DIR}/scripts/restream-generate.py" "${JSON_FILE}" "${CONF_FILE}" "${STUNNEL_SNIPPET}"
