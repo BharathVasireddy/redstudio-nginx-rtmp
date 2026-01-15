@@ -146,8 +146,24 @@ try:
 except FileNotFoundError:
     data = {}
 
+def parse_bool(value, default):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("1", "true", "yes", "on"):
+            return True
+        if text in ("0", "false", "no", "off"):
+            return False
+    return default
+
 public_live = bool(data.get("public_live", True))
 public_hls = bool(data.get("public_hls", True))
+force_transcode = parse_bool(data.get("force_transcode"), True)
 overlay_active = False
 raw_overlays = data.get("overlays")
 if not isinstance(raw_overlays, list):
@@ -266,7 +282,7 @@ with open(public_hls_conf, "w", encoding="utf-8") as fh:
     fh.write(f"set $public_hls {1 if public_hls else 0};\n")
 
 with open(overlay_bypass_conf, "w", encoding="utf-8") as fh:
-    if overlay_active:
+    if overlay_active or force_transcode:
         fh.write("# overlay pipeline active\n")
     else:
         fh.write("push rtmp://127.0.0.1/live/stream;\n")

@@ -184,6 +184,22 @@ def sanitize_destination(dest: dict) -> dict:
     return clean
 
 
+def parse_bool(value: object, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"1", "true", "yes", "on"}:
+            return True
+        if text in {"0", "false", "no", "off"}:
+            return False
+    return default
+
+
 def clamp_int(value: object, min_value: int, max_value: int, fallback: int) -> int:
     try:
         number = int(float(value))
@@ -894,6 +910,7 @@ def load_config() -> dict:
             "ingest_key": "",
             "public_live": True,
             "public_hls": True,
+            "force_transcode": True,
             "ticker": TICKER_DEFAULT.copy(),
             "overlay": OVERLAY_DEFAULT.copy(),
             "overlays": [sanitize_overlay_item({}, {}, fallback_id="primary")],
@@ -909,6 +926,7 @@ def load_config() -> dict:
         payload["public_hls"] = True
     else:
         payload["public_hls"] = bool(payload["public_hls"])
+    payload["force_transcode"] = parse_bool(payload.get("force_transcode"), True)
     raw_ticker = payload.get("ticker")
     payload["ticker"] = sanitize_ticker(payload, payload)
     overlays = sanitize_overlays(payload, payload)
@@ -923,6 +941,7 @@ def load_config() -> dict:
                     "ingest_key": payload.get("ingest_key", ""),
                     "public_live": payload.get("public_live", True),
                     "public_hls": payload.get("public_hls", True),
+                    "force_transcode": payload.get("force_transcode", True),
                     "ticker": payload.get("ticker", TICKER_DEFAULT.copy()),
                     "overlay": payload.get("overlay", OVERLAY_DEFAULT.copy()),
                     "overlays": payload.get("overlays", []),
@@ -964,6 +983,7 @@ def save_config(payload: dict) -> None:
         ingest_key = ""
     public_live = bool(payload.get("public_live", existing.get("public_live", True)))
     public_hls = bool(payload.get("public_hls", existing.get("public_hls", True)))
+    force_transcode = parse_bool(payload.get("force_transcode"), existing.get("force_transcode", True))
     ticker = sanitize_ticker(payload, existing)
     overlays = sanitize_overlays(payload, existing)
     overlay = overlays[0] if overlays else OVERLAY_DEFAULT.copy()
@@ -974,6 +994,7 @@ def save_config(payload: dict) -> None:
                 "ingest_key": ingest_key,
                 "public_live": public_live,
                 "public_hls": public_hls,
+                "force_transcode": force_transcode,
                 "ticker": ticker,
                 "overlay": overlay,
                 "overlays": overlays,

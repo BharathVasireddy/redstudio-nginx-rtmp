@@ -71,10 +71,27 @@ allowed_positions = {
     "custom",
 }
 
+def parse_bool(value, default):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in ("1", "true", "yes", "on"):
+            return True
+        if text in ("0", "false", "no", "off"):
+            return False
+    return default
+
 try:
     data = json.loads(config_path.read_text(encoding="utf-8"))
 except Exception:
     data = {}
+
+force_transcode = parse_bool(data.get("force_transcode"), True)
 
 raw_overlays = data.get("overlays")
 if not isinstance(raw_overlays, list):
@@ -157,6 +174,7 @@ for item in raw_overlays:
     active.append(overlay)
 
 if not active:
+    print(f"FORCE_TRANSCODE={1 if force_transcode else 0}")
     print("OVERLAY_COUNT=0")
     sys.exit(0)
 
@@ -191,6 +209,7 @@ for idx, overlay in enumerate(active, start=1):
     base_label = base_out
 
 filter_complex = ";".join(filters)
+print(f"FORCE_TRANSCODE={1 if force_transcode else 0}")
 print(f"OVERLAY_COUNT={len(active)}")
 print(f"OVERLAY_VIDEO_LABEL={base_label}")
 print(f"OVERLAY_FILTER_COMPLEX={shlex.quote(filter_complex)}")
@@ -203,8 +222,12 @@ if [ -n "${OVERLAY_CONFIG}" ]; then
     eval "${OVERLAY_CONFIG}"
 fi
 
+if [ -z "${FORCE_TRANSCODE:-}" ]; then
+    FORCE_TRANSCODE=1
+fi
+
 if [ "${OVERLAY_COUNT}" -eq 0 ]; then
-    if [ -f "${OVERLAY_BYPASS_FILE}" ] && grep -q "push rtmp://127.0.0.1/live" "${OVERLAY_BYPASS_FILE}"; then
+    if [ "${FORCE_TRANSCODE}" != "1" ] && [ -f "${OVERLAY_BYPASS_FILE}" ] && grep -q "push rtmp://127.0.0.1/live" "${OVERLAY_BYPASS_FILE}"; then
         echo "No overlays enabled; bypassing FFmpeg pipeline."
         exit 0
     fi
@@ -244,6 +267,17 @@ if [ "${OVERLAY_COUNT}" -gt 0 ] && [ -n "${OVERLAY_FILTER_COMPLEX}" ] && [ -n "$
         "${ffmpeg_cmd[@]}"
         exit 0
     fi
+fi
+
+if [ "${FORCE_TRANSCODE}" = "1" ]; then
+    "${FFMPEG_BIN}" -hide_banner -loglevel warning -stats -y \
+        -fflags +genpts -use_wallclock_as_timestamps 1 -thread_queue_size 512 -i "${INPUT_URL}" \
+        -map 0:v:0 -map 0:a? \
+        -r 30 -vsync 1 \
+        -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
+        -c:a aac -b:a 128k -ar 48000 -ac 2 -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
+        -f flv "${OUTPUT_URL}"
+    exit 0
 fi
 
 "${FFMPEG_BIN}" -hide_banner -loglevel warning -stats -y \

@@ -2,6 +2,7 @@
   "ingest_key": "",
   "public_live": true,
   "public_hls": true,
+  "force_transcode": true,
   "ticker": {
     "enabled": false,
     "text": "",

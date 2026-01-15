@@ -107,6 +107,11 @@ if ($data.PSObject.Properties.Name -contains "overlays" -and $data.overlays) {
     }
 }
 
+$forceTranscode = $true
+if ($data.PSObject.Properties.Name -contains "force_transcode") {
+    $forceTranscode = [bool]$data.force_transcode
+}
+
 $tickerEnabled = $false
 $tickerText = ""
 $tickerSpeed = 32
@@ -237,7 +242,7 @@ $publicPayload = [ordered]@{
 }
 $publicPayload | ConvertTo-Json -Compress | Out-File -FilePath $publicConfigFile -Encoding ASCII -Force
 ("set `$public_hls " + ($(if ($publicHls) { "1" } else { "0" })) + ";") | Out-File -FilePath $publicHlsConf -Encoding ASCII -Force
-if ($overlayActive) {
+if ($overlayActive -or $forceTranscode) {
     "# overlay pipeline active" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
 } else {
     "push rtmp://127.0.0.1/live/stream;" | Out-File -FilePath $overlayBypassConf -Encoding ASCII -Force
