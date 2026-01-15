@@ -70,6 +70,11 @@ allowed_positions = {
     "center-right",
     "custom",
 }
+transcode_defaults = {
+    "bitrate_kbps": 3500,
+    "maxrate_kbps": 4500,
+    "bufsize_kbps": 7000,
+}
 
 def parse_bool(value, default):
     if isinstance(value, bool):
@@ -92,6 +97,24 @@ except Exception:
     data = {}
 
 force_transcode = parse_bool(data.get("force_transcode"), True)
+transcode_bitrate = clamp_int(
+    data.get("transcode_bitrate_kbps"),
+    300,
+    20000,
+    transcode_defaults["bitrate_kbps"],
+)
+transcode_maxrate = clamp_int(
+    data.get("transcode_maxrate_kbps"),
+    transcode_bitrate,
+    30000,
+    max(transcode_bitrate, transcode_defaults["maxrate_kbps"]),
+)
+transcode_bufsize = clamp_int(
+    data.get("transcode_bufsize_kbps"),
+    transcode_maxrate,
+    60000,
+    transcode_maxrate * 2,
+)
 
 raw_overlays = data.get("overlays")
 if not isinstance(raw_overlays, list):
@@ -175,6 +198,9 @@ for item in raw_overlays:
 
 if not active:
     print(f"FORCE_TRANSCODE={1 if force_transcode else 0}")
+    print(f"TRANSCODE_BITRATE_KBPS={transcode_bitrate}")
+    print(f"TRANSCODE_MAXRATE_KBPS={transcode_maxrate}")
+    print(f"TRANSCODE_BUFSIZE_KBPS={transcode_bufsize}")
     print("OVERLAY_COUNT=0")
     sys.exit(0)
 
@@ -210,6 +236,9 @@ for idx, overlay in enumerate(active, start=1):
 
 filter_complex = ";".join(filters)
 print(f"FORCE_TRANSCODE={1 if force_transcode else 0}")
+print(f"TRANSCODE_BITRATE_KBPS={transcode_bitrate}")
+print(f"TRANSCODE_MAXRATE_KBPS={transcode_maxrate}")
+print(f"TRANSCODE_BUFSIZE_KBPS={transcode_bufsize}")
 print(f"OVERLAY_COUNT={len(active)}")
 print(f"OVERLAY_VIDEO_LABEL={base_label}")
 print(f"OVERLAY_FILTER_COMPLEX={shlex.quote(filter_complex)}")
@@ -224,6 +253,15 @@ fi
 
 if [ -z "${FORCE_TRANSCODE:-}" ]; then
     FORCE_TRANSCODE=1
+fi
+if [ -z "${TRANSCODE_BITRATE_KBPS:-}" ]; then
+    TRANSCODE_BITRATE_KBPS=3500
+fi
+if [ -z "${TRANSCODE_MAXRATE_KBPS:-}" ]; then
+    TRANSCODE_MAXRATE_KBPS=4500
+fi
+if [ -z "${TRANSCODE_BUFSIZE_KBPS:-}" ]; then
+    TRANSCODE_BUFSIZE_KBPS=$((TRANSCODE_MAXRATE_KBPS * 2))
 fi
 
 if [ "${OVERLAY_COUNT}" -eq 0 ]; then
@@ -260,7 +298,8 @@ if [ "${OVERLAY_COUNT}" -gt 0 ] && [ -n "${OVERLAY_FILTER_COMPLEX}" ] && [ -n "$
             -map "[${OVERLAY_VIDEO_LABEL}]" -map 0:a?
             -r 30
             -vsync 1
-            -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p
+            -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
+            -b:v "${TRANSCODE_BITRATE_KBPS}k" -maxrate "${TRANSCODE_MAXRATE_KBPS}k" -bufsize "${TRANSCODE_BUFSIZE_KBPS}k"
             -c:a aac -b:a 128k -ar 48000 -ac 2 -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0"
             -f flv "${OUTPUT_URL}"
         )
@@ -275,6 +314,7 @@ if [ "${FORCE_TRANSCODE}" = "1" ]; then
         -map 0:v:0 -map 0:a? \
         -r 30 -vsync 1 \
         -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
+        -b:v "${TRANSCODE_BITRATE_KBPS}k" -maxrate "${TRANSCODE_MAXRATE_KBPS}k" -bufsize "${TRANSCODE_BUFSIZE_KBPS}k" \
         -c:a aac -b:a 128k -ar 48000 -ac 2 -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
         -f flv "${OUTPUT_URL}"
     exit 0

@@ -97,6 +97,11 @@ TICKER_DEFAULT = {
     "separator": "•",
     "items": [],
 }
+TRANSCODE_DEFAULTS = {
+    "bitrate_kbps": 3500,
+    "maxrate_kbps": 4500,
+    "bufsize_kbps": 7000,
+}
 
 
 def now_ts() -> int:
@@ -911,6 +916,9 @@ def load_config() -> dict:
             "public_live": True,
             "public_hls": True,
             "force_transcode": True,
+            "transcode_bitrate_kbps": TRANSCODE_DEFAULTS["bitrate_kbps"],
+            "transcode_maxrate_kbps": TRANSCODE_DEFAULTS["maxrate_kbps"],
+            "transcode_bufsize_kbps": TRANSCODE_DEFAULTS["bufsize_kbps"],
             "ticker": TICKER_DEFAULT.copy(),
             "overlay": OVERLAY_DEFAULT.copy(),
             "overlays": [sanitize_overlay_item({}, {}, fallback_id="primary")],
@@ -927,6 +935,24 @@ def load_config() -> dict:
     else:
         payload["public_hls"] = bool(payload["public_hls"])
     payload["force_transcode"] = parse_bool(payload.get("force_transcode"), True)
+    payload["transcode_bitrate_kbps"] = clamp_int(
+        payload.get("transcode_bitrate_kbps"),
+        300,
+        20000,
+        TRANSCODE_DEFAULTS["bitrate_kbps"],
+    )
+    payload["transcode_maxrate_kbps"] = clamp_int(
+        payload.get("transcode_maxrate_kbps"),
+        payload["transcode_bitrate_kbps"],
+        30000,
+        max(payload["transcode_bitrate_kbps"], TRANSCODE_DEFAULTS["maxrate_kbps"]),
+    )
+    payload["transcode_bufsize_kbps"] = clamp_int(
+        payload.get("transcode_bufsize_kbps"),
+        payload["transcode_maxrate_kbps"],
+        60000,
+        payload["transcode_maxrate_kbps"] * 2,
+    )
     raw_ticker = payload.get("ticker")
     payload["ticker"] = sanitize_ticker(payload, payload)
     overlays = sanitize_overlays(payload, payload)
@@ -942,6 +968,15 @@ def load_config() -> dict:
                     "public_live": payload.get("public_live", True),
                     "public_hls": payload.get("public_hls", True),
                     "force_transcode": payload.get("force_transcode", True),
+                    "transcode_bitrate_kbps": payload.get(
+                        "transcode_bitrate_kbps", TRANSCODE_DEFAULTS["bitrate_kbps"]
+                    ),
+                    "transcode_maxrate_kbps": payload.get(
+                        "transcode_maxrate_kbps", TRANSCODE_DEFAULTS["maxrate_kbps"]
+                    ),
+                    "transcode_bufsize_kbps": payload.get(
+                        "transcode_bufsize_kbps", TRANSCODE_DEFAULTS["bufsize_kbps"]
+                    ),
                     "ticker": payload.get("ticker", TICKER_DEFAULT.copy()),
                     "overlay": payload.get("overlay", OVERLAY_DEFAULT.copy()),
                     "overlays": payload.get("overlays", []),
@@ -984,6 +1019,24 @@ def save_config(payload: dict) -> None:
     public_live = bool(payload.get("public_live", existing.get("public_live", True)))
     public_hls = bool(payload.get("public_hls", existing.get("public_hls", True)))
     force_transcode = parse_bool(payload.get("force_transcode"), existing.get("force_transcode", True))
+    transcode_bitrate_kbps = clamp_int(
+        payload.get("transcode_bitrate_kbps", existing.get("transcode_bitrate_kbps")),
+        300,
+        20000,
+        TRANSCODE_DEFAULTS["bitrate_kbps"],
+    )
+    transcode_maxrate_kbps = clamp_int(
+        payload.get("transcode_maxrate_kbps", existing.get("transcode_maxrate_kbps")),
+        transcode_bitrate_kbps,
+        30000,
+        max(transcode_bitrate_kbps, TRANSCODE_DEFAULTS["maxrate_kbps"]),
+    )
+    transcode_bufsize_kbps = clamp_int(
+        payload.get("transcode_bufsize_kbps", existing.get("transcode_bufsize_kbps")),
+        transcode_maxrate_kbps,
+        60000,
+        transcode_maxrate_kbps * 2,
+    )
     ticker = sanitize_ticker(payload, existing)
     overlays = sanitize_overlays(payload, existing)
     overlay = overlays[0] if overlays else OVERLAY_DEFAULT.copy()
@@ -995,6 +1048,9 @@ def save_config(payload: dict) -> None:
                 "public_live": public_live,
                 "public_hls": public_hls,
                 "force_transcode": force_transcode,
+                "transcode_bitrate_kbps": transcode_bitrate_kbps,
+                "transcode_maxrate_kbps": transcode_maxrate_kbps,
+                "transcode_bufsize_kbps": transcode_bufsize_kbps,
                 "ticker": ticker,
                 "overlay": overlay,
                 "overlays": overlays,
