@@ -76,6 +76,24 @@ transcode_defaults = {
     "bufsize_kbps": 7000,
 }
 
+def clamp_int(value, min_value, max_value, fallback):
+    try:
+        number = int(float(value))
+    except (TypeError, ValueError):
+        return fallback
+    return max(min_value, min(max_value, number))
+
+def clamp_float(value, min_value, max_value, fallback):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    return max(min_value, min(max_value, number))
+
+def fmt_float(value):
+    text = f"{value:.3f}".rstrip("0").rstrip(".")
+    return text if text else "0"
+
 def parse_bool(value, default):
     if isinstance(value, bool):
         return value
@@ -120,24 +138,6 @@ raw_overlays = data.get("overlays")
 if not isinstance(raw_overlays, list):
     raw_overlay = data.get("overlay")
     raw_overlays = [raw_overlay] if isinstance(raw_overlay, dict) else []
-
-def clamp_int(value, min_value, max_value, fallback):
-    try:
-        number = int(float(value))
-    except (TypeError, ValueError):
-        return fallback
-    return max(min_value, min(max_value, number))
-
-def clamp_float(value, min_value, max_value, fallback):
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return fallback
-    return max(min_value, min(max_value, number))
-
-def fmt_float(value):
-    text = f"{value:.3f}".rstrip("0").rstrip(".")
-    return text if text else "0"
 
 def normalize_overlay(raw):
     overlay = {**defaults, **(raw if isinstance(raw, dict) else {})}
