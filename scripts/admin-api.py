@@ -101,6 +101,7 @@ TRANSCODE_DEFAULTS = {
     "bitrate_kbps": 3500,
     "maxrate_kbps": 4500,
     "bufsize_kbps": 7000,
+    "fps": 0,
 }
 
 
@@ -919,6 +920,7 @@ def load_config() -> dict:
             "transcode_bitrate_kbps": TRANSCODE_DEFAULTS["bitrate_kbps"],
             "transcode_maxrate_kbps": TRANSCODE_DEFAULTS["maxrate_kbps"],
             "transcode_bufsize_kbps": TRANSCODE_DEFAULTS["bufsize_kbps"],
+            "transcode_fps": TRANSCODE_DEFAULTS["fps"],
             "ticker": TICKER_DEFAULT.copy(),
             "overlay": OVERLAY_DEFAULT.copy(),
             "overlays": [sanitize_overlay_item({}, {}, fallback_id="primary")],
@@ -953,6 +955,12 @@ def load_config() -> dict:
         60000,
         payload["transcode_maxrate_kbps"] * 2,
     )
+    payload["transcode_fps"] = clamp_int(
+        payload.get("transcode_fps"),
+        0,
+        120,
+        TRANSCODE_DEFAULTS["fps"],
+    )
     raw_ticker = payload.get("ticker")
     payload["ticker"] = sanitize_ticker(payload, payload)
     overlays = sanitize_overlays(payload, payload)
@@ -977,6 +985,7 @@ def load_config() -> dict:
                     "transcode_bufsize_kbps": payload.get(
                         "transcode_bufsize_kbps", TRANSCODE_DEFAULTS["bufsize_kbps"]
                     ),
+                    "transcode_fps": payload.get("transcode_fps", TRANSCODE_DEFAULTS["fps"]),
                     "ticker": payload.get("ticker", TICKER_DEFAULT.copy()),
                     "overlay": payload.get("overlay", OVERLAY_DEFAULT.copy()),
                     "overlays": payload.get("overlays", []),
@@ -1037,6 +1046,12 @@ def save_config(payload: dict) -> None:
         60000,
         transcode_maxrate_kbps * 2,
     )
+    transcode_fps = clamp_int(
+        payload.get("transcode_fps", existing.get("transcode_fps")),
+        0,
+        120,
+        TRANSCODE_DEFAULTS["fps"],
+    )
     ticker = sanitize_ticker(payload, existing)
     overlays = sanitize_overlays(payload, existing)
     overlay = overlays[0] if overlays else OVERLAY_DEFAULT.copy()
@@ -1051,6 +1066,7 @@ def save_config(payload: dict) -> None:
                 "transcode_bitrate_kbps": transcode_bitrate_kbps,
                 "transcode_maxrate_kbps": transcode_maxrate_kbps,
                 "transcode_bufsize_kbps": transcode_bufsize_kbps,
+                "transcode_fps": transcode_fps,
                 "ticker": ticker,
                 "overlay": overlay,
                 "overlays": overlays,

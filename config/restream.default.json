@@ -6,6 +6,7 @@
   "transcode_bitrate_kbps": 3500,
   "transcode_maxrate_kbps": 4500,
   "transcode_bufsize_kbps": 7000,
+  "transcode_fps": 0,
   "ticker": {
     "enabled": false,
     "text": "",

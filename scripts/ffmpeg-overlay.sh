@@ -74,6 +74,7 @@ transcode_defaults = {
     "bitrate_kbps": 3500,
     "maxrate_kbps": 4500,
     "bufsize_kbps": 7000,
+    "fps": 0,
 }
 
 def clamp_int(value, min_value, max_value, fallback):
@@ -132,6 +133,12 @@ transcode_bufsize = clamp_int(
     transcode_maxrate,
     60000,
     transcode_maxrate * 2,
+)
+transcode_fps = clamp_int(
+    data.get("transcode_fps"),
+    0,
+    120,
+    transcode_defaults["fps"],
 )
 
 raw_overlays = data.get("overlays")
@@ -201,6 +208,7 @@ if not active:
     print(f"TRANSCODE_BITRATE_KBPS={transcode_bitrate}")
     print(f"TRANSCODE_MAXRATE_KBPS={transcode_maxrate}")
     print(f"TRANSCODE_BUFSIZE_KBPS={transcode_bufsize}")
+    print(f"TRANSCODE_FPS={transcode_fps}")
     print("OVERLAY_COUNT=0")
     sys.exit(0)
 
@@ -239,6 +247,7 @@ print(f"FORCE_TRANSCODE={1 if force_transcode else 0}")
 print(f"TRANSCODE_BITRATE_KBPS={transcode_bitrate}")
 print(f"TRANSCODE_MAXRATE_KBPS={transcode_maxrate}")
 print(f"TRANSCODE_BUFSIZE_KBPS={transcode_bufsize}")
+print(f"TRANSCODE_FPS={transcode_fps}")
 print(f"OVERLAY_COUNT={len(active)}")
 print(f"OVERLAY_VIDEO_LABEL={base_label}")
 print(f"OVERLAY_FILTER_COMPLEX={shlex.quote(filter_complex)}")
@@ -262,6 +271,16 @@ if [ -z "${TRANSCODE_MAXRATE_KBPS:-}" ]; then
 fi
 if [ -z "${TRANSCODE_BUFSIZE_KBPS:-}" ]; then
     TRANSCODE_BUFSIZE_KBPS=$((TRANSCODE_MAXRATE_KBPS * 2))
+fi
+if [ -z "${TRANSCODE_FPS:-}" ]; then
+    TRANSCODE_FPS=0
+fi
+
+FPS_ARGS=()
+if [ "${TRANSCODE_FPS}" -gt 0 ]; then
+    FPS_ARGS=(-r "${TRANSCODE_FPS}" -vsync 1)
+else
+    FPS_ARGS=(-vsync 0)
 fi
 
 if [ "${OVERLAY_COUNT}" -eq 0 ]; then
@@ -296,8 +315,7 @@ if [ "${OVERLAY_COUNT}" -gt 0 ] && [ -n "${OVERLAY_FILTER_COMPLEX}" ] && [ -n "$
         ffmpeg_cmd+=(
             -filter_complex "${OVERLAY_FILTER_COMPLEX}"
             -map "[${OVERLAY_VIDEO_LABEL}]" -map 0:a?
-            -r 30
-            -vsync 1
+            "${FPS_ARGS[@]}"
             -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
             -b:v "${TRANSCODE_BITRATE_KBPS}k" -maxrate "${TRANSCODE_MAXRATE_KBPS}k" -bufsize "${TRANSCODE_BUFSIZE_KBPS}k"
             -c:a aac -b:a 128k -ar 48000 -ac 2 -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0"
@@ -312,7 +330,7 @@ if [ "${FORCE_TRANSCODE}" = "1" ]; then
     "${FFMPEG_BIN}" -hide_banner -loglevel warning -stats -y \
         -fflags +genpts -use_wallclock_as_timestamps 1 -thread_queue_size 512 -i "${INPUT_URL}" \
         -map 0:v:0 -map 0:a? \
-        -r 30 -vsync 1 \
+        "${FPS_ARGS[@]}" \
         -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
         -b:v "${TRANSCODE_BITRATE_KBPS}k" -maxrate "${TRANSCODE_MAXRATE_KBPS}k" -bufsize "${TRANSCODE_BUFSIZE_KBPS}k" \
         -c:a aac -b:a 128k -ar 48000 -ac 2 -af "aresample=async=1:min_hard_comp=0.100000:first_pts=0" \
